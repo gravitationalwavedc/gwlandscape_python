@@ -2,6 +2,7 @@ import logging
 
 from gwdc_python import GWDC
 
+from .keyword import Keyword
 from .settings import GWLANDSCAPE_ENDPOINT
 
 logger = logging.getLogger(__name__)
@@ -31,3 +32,114 @@ class GWLandscape:
     def __init__(self, token, endpoint=GWLANDSCAPE_ENDPOINT):
         self.client = GWDC(token=token, endpoint=endpoint)
         self.request = self.client.request  # Setting shorthand for simplicity
+
+    def create_keyword(self, tag):
+        """
+        Creates a new keyword object with the specified tag.
+
+        Parameters
+        ----------
+        tag : str
+            The tag of the keyword to be created
+
+        Return
+        ------
+        Keyword instance representing the keyword created
+        """
+        mutation = """
+            mutation AddKeywordMutation($input: AddKeywordMutationInput!) {
+                addKeyword(input: $input) {
+                    result
+                }
+            }
+        """
+
+        params = {
+            'input': {
+                'tag': tag
+            }
+        }
+
+        result = self.request(mutation, params)
+
+        assert result['addKeyword']['result']
+
+        return self.get_keywords(exact=tag)[0]
+
+    def get_keywords(self, exact=None, contains=None):
+        """
+        Fetch all keywords matching exactly the provided parameter, or any keywords with tags containing the term in
+        the contains parameter.
+
+        At most, only one of exact or contains must be provided. If neither extract nor contains parameter is supplied,
+        then all keywords are returned.
+
+        Parameters
+        ----------
+        exact : str, optional
+            Match keywords with this exact tag (case-insensitive)
+        contains : str, optional
+            Match keywords containing this text (case-insensitive))
+
+        Return
+        ------
+        A list of Keyword instances. If nothing was found the list will be empty.
+        """
+
+        assert not (exact and contains)
+
+        keyword_component = ''
+        if exact:
+            keyword_component = f'(tag: "{exact}")'
+
+        if contains:
+            keyword_component = f'(tag_Icontains: "{contains}")'
+
+        query = f"""
+            query {{
+                keywords {keyword_component} {{
+                    edges {{
+                        node {{
+                            id
+                            tag
+                        }}
+                    }}
+                }}
+            }}
+        """
+
+        result = self.request(query)
+
+        return [Keyword(kw['node']) for kw in result['keywords']['edges']]
+
+    def delete_keyword(self, keyword):
+        """
+        Delete a keyword represented by the provided keyword.
+
+        Parameters
+        ----------
+        keyword: Keyword
+            The Keyword instance to delete
+
+        Return
+        ------
+        None
+        """
+
+        mutation = """
+            mutation DeleteKeywordMutation($input: DeleteKeywordMutationInput!) {
+                deleteKeyword(input: $input) {
+                    result
+                }
+            }
+        """
+
+        params = {
+            'input': {
+                'id': keyword.id
+            }
+        }
+
+        result = self.request(mutation, params)
+
+        assert result['deleteKeyword']['result']
