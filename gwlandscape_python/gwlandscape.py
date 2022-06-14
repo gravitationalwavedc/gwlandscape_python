@@ -49,7 +49,7 @@ class GWLandscape:
         mutation = """
             mutation AddKeywordMutation($input: AddKeywordMutationInput!) {
                 addKeyword(input: $input) {
-                    result
+                    id
                 }
             }
         """
@@ -62,17 +62,17 @@ class GWLandscape:
 
         result = self.request(mutation, params)
 
-        assert result['addKeyword']['result']
+        assert 'id' in result['add_keyword']
 
-        return self.get_keywords(exact=tag)[0]
+        return self.get_keywords(_id=result['add_keyword']['id'])[0]
 
-    def get_keywords(self, exact=None, contains=None):
+    def get_keywords(self, exact=None, contains=None, _id=None):
         """
-        Fetch all keywords matching exactly the provided parameter, or any keywords with tags containing the term in
-        the contains parameter.
+        Fetch all keywords matching exactly the provided parameter, any keywords with tags containing the term in
+        the contains parameter, or the keyword with the specified id.
 
-        At most, only one of exact or contains must be provided. If neither extract nor contains parameter is supplied,
-        then all keywords are returned.
+        At most, only one of exact, contains, or _id must be provided. If neither the extract, contains, or _id
+        parameter is supplied, then all keywords are returned.
 
         Parameters
         ----------
@@ -80,13 +80,16 @@ class GWLandscape:
             Match keywords with this exact tag (case-insensitive)
         contains : str, optional
             Match keywords containing this text (case-insensitive))
+        _id : str, optional
+            Match keyword by the provided ID
 
         Return
         ------
         A list of Keyword instances. If nothing was found the list will be empty.
         """
 
-        assert not (exact and contains)
+        # Make sure exactly one parameter is provided
+        assert sum(x is not None for x in (exact, contains, _id)) <= 1
 
         keyword_component = ''
         if exact:
@@ -94,6 +97,9 @@ class GWLandscape:
 
         if contains:
             keyword_component = f'(tag_Icontains: "{contains}")'
+
+        if _id:
+            keyword_component = f'(id: "{_id}")'
 
         query = f"""
             query {{
@@ -142,4 +148,4 @@ class GWLandscape:
 
         result = self.request(mutation, params)
 
-        assert result['deleteKeyword']['result']
+        assert result['delete_keyword']['result']
