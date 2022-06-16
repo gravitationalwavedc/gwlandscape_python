@@ -2,7 +2,7 @@ import logging
 
 from gwdc_python import GWDC
 
-from .keyword import Keyword
+from .keyword_type import Keyword
 from .settings import GWLANDSCAPE_ENDPOINT
 
 logger = logging.getLogger(__name__)
