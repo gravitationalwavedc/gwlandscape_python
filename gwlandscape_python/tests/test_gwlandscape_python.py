@@ -262,7 +262,7 @@ def test_delete_keyword(setup_gwl_request):
         }
     }
 
-    keyword = Keyword({'tag': 'my_tag', 'id': 'S2V5d29yZE5vZGU6MzA='})
+    keyword = Keyword(**{'tag': 'my_tag', 'id': 'S2V5d29yZE5vZGU6MzA='})
 
     gwl.delete_keyword(keyword)
 

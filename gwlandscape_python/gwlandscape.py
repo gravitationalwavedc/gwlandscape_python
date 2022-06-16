@@ -111,7 +111,7 @@ class GWLandscape:
 
         result = self.request(query)
 
-        return [Keyword(kw['node']) for kw in result['keywords']['edges']]
+        return [Keyword(**kw['node']) for kw in result['keywords']['edges']]
 
     def delete_keyword(self, keyword):
         """
