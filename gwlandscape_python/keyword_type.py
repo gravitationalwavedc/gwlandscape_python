@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-@dataclass(repr=True)
+@dataclass(frozen=True)
 class Keyword:
     id: str
     tag: str
