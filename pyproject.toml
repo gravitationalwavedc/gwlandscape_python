@@ -31,6 +31,7 @@ flake8 = "^3.9.2"
 coverage = "^5.5"
 pytest-mock = "^3.6.1"
 pytest-cov = "^2.12.1"
+graphql-core = "^3.2.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
