@@ -18,6 +18,7 @@ importlib-metadata = "^4.5.0"
 Sphinx = {version = "^4.0.2", optional = true}
 sphinx-rtd-theme = {version = "^0.5.2", optional = true}
 tqdm = "^4.61.2"
+arxiv = "^1.4.2"
 
 [tool.poetry.extras]
 docs = ["Sphinx", "sphinx-rtd-theme"]
@@ -31,6 +32,7 @@ flake8 = "^3.9.2"
 coverage = "^5.5"
 pytest-mock = "^3.6.1"
 pytest-cov = "^2.12.1"
+graphql-core = "^3.2.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
