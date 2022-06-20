@@ -18,7 +18,6 @@ importlib-metadata = "^4.5.0"
 Sphinx = {version = "^4.0.2", optional = true}
 sphinx-rtd-theme = {version = "^0.5.2", optional = true}
 tqdm = "^4.61.2"
-arxiv = "^1.4.2"
 
 [tool.poetry.extras]
 docs = ["Sphinx", "sphinx-rtd-theme"]
