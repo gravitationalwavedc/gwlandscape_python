@@ -2,6 +2,7 @@ from gwdc_python import GWDC
 from gwdc_python.logger import create_logger
 
 from .keyword_type import Keyword
+from .model_type import Model
 from .publication_type import Publication
 from .settings import GWLANDSCAPE_ENDPOINT
 
@@ -240,19 +241,19 @@ class GWLandscape:
         if _id:
             assert not param_provided
 
-        keyword_component = []
+        search_component = []
         if title:
-            keyword_component.append(f'title_Icontains: "{title}"')
+            search_component.append(f'title_Icontains: "{title}"')
 
         if author:
-            keyword_component.append(f'author_Icontains: "{author}"')
+            search_component.append(f'author_Icontains: "{author}"')
 
         if _id:
-            keyword_component.append(f'id: "{_id}"')
+            search_component.append(f'id: "{_id}"')
 
         query = f"""
             query {{
-                compasPublications {'' if not keyword_component else ('(' + ','.join(keyword_component) + ')')} {{
+                compasPublications {'' if not search_component else ('(' + ','.join(search_component) + ')')} {{
                     edges {{
                         node {{
                             id
@@ -321,3 +322,138 @@ class GWLandscape:
         result = self.request(mutation, params)
 
         assert result['delete_publication']['result']
+
+    def create_model(self, name, summary=None, description=None):
+        """
+        Creates a new model object with the specified parameters.
+
+        Parameters
+        ----------
+        name : str
+            The name of the model to be created
+        summary : str, optional
+            The summary of the model to be created
+        description : str, optional
+            The description of the model to be created
+
+        Return
+        ------
+        Model instance representing the model created
+        """
+        mutation = """
+            mutation AddCompasModelMutation($input: AddCompasModelMutationInput!) {
+                addCompasModel(input: $input) {
+                    id
+                }
+            }
+        """
+
+        params = {
+            'input': {
+                'name': name,
+                'summary': summary,
+                'description': description
+            }
+        }
+
+        result = self.request(mutation, params)
+
+        assert 'id' in result['add_compas_model']
+
+        return self.get_models(_id=result['add_compas_model']['id'])[0]
+
+    def get_models(self, name=None, summary=None, description=None, _id=None):
+        """
+        Fetch all models with name/summary/description containing the values specified.
+        Also allows fetching models by the provided ID
+
+        At most, only one of (name, summary, description) or _id must be provided. If no parameter is provided, all
+        models are returned.
+
+        Parameters
+        ----------
+        name : str, optional
+            Match model name containing this value (case-insensitive)
+        summary : str, optional
+            Match model summary contains this value (case-insensitive)
+        description : str, optional
+            Match model description contains this value (case-insensitive)
+        _id : str, optional
+            Match model by the provided ID
+
+        Return
+        ------
+        A list of Model instances. If nothing was found the list will be empty.
+        """
+
+        # Make sure exactly one parameter is provided
+        param_provided = name or summary or description
+        if param_provided:
+            assert not _id
+
+        if _id:
+            assert not param_provided
+
+        search_component = []
+        if name:
+            search_component.append(f'name_Icontains: "{name}"')
+
+        if summary:
+            search_component.append(f'summary_Icontains: "{summary}"')
+
+        if description:
+            search_component.append(f'description_Icontains: "{description}"')
+
+        if _id:
+            search_component.append(f'id: "{_id}"')
+
+        query = f"""
+            query {{
+                compasModels {'' if not search_component else ('(' + ','.join(search_component) + ')')} {{
+                    edges {{
+                        node {{
+                            id
+                            name
+                            summary
+                            description
+                        }}
+                    }}
+                }}
+            }}
+        """
+
+        result = self.request(query)
+
+        return [Model(**kw['node']) for kw in result['compas_models']['edges']]
+
+    def delete_model(self, model):
+        """
+        Delete a model represented by the provided model.
+
+        Parameters
+        ----------
+        model: Model
+            The Model instance to delete
+
+        Return
+        ------
+        None
+        """
+
+        mutation = """
+            mutation DeleteCompasModelMutation($input: DeleteCompasModelMutationInput!) {
+                deleteCompasModel(input: $input) {
+                    result
+                }
+            }
+        """
+
+        params = {
+            'input': {
+                'id': model.id
+            }
+        }
+
+        result = self.request(mutation, params)
+
+        assert result['delete_compas_model']['result']
