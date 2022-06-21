@@ -1,6 +1,10 @@
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
 import pytest
 
 from gwlandscape_python import GWLandscape
+from gwlandscape_python.dataset_type import Dataset
 from gwlandscape_python.keyword_type import Keyword
 from gwlandscape_python.model_type import Model
 from gwlandscape_python.publication_type import Publication
@@ -127,6 +131,78 @@ def create_model_request(setup_gwl_request):
                             "name": "my_name",
                             "summary": "my_summary",
                             "description": "my_description"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+
+    gwl, mr = setup_gwl_request
+
+    def mock_request(*args, **kwargs):
+        return response_data.pop(0)
+
+    mr.side_effect = mock_request
+
+    return gwl, mr
+
+
+@pytest.fixture
+def mock_publication_data():
+    publication_data = {
+        'id': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw',
+        'author': 'my author',
+        'published': True,
+        'title': 'my publication',
+        'year': 1234,
+        'journal': 'journal',
+        'journal_doi': 'journal doi',
+        'dataset_doi': 'dataset doi',
+        'creation_time': '2022-06-20T02:12:59.459297+00:00',
+        'description': 'my description',
+        'public': True,
+        'download_link': 'my download link',
+        'arxiv_id': 'an arxiv id',
+        'keywords': []
+    }
+
+    model_data = {
+        'name': 'my_name',
+        'summary': 'my_summary',
+        'description': 'my_description',
+        'id': 'Q29tcGFzTW9kZWxOb2RlOjI='
+    }
+
+    return publication_data, model_data
+
+
+@pytest.fixture
+def create_dataset_request(setup_gwl_request, mock_publication_data):
+    publication_data, model_data = mock_publication_data
+
+    publication_data = publication_data.copy()
+    publication_data['keywords'] = {
+        'edges': []
+    }
+
+    response_data = [
+        {
+            "add_compas_dataset_model": {
+                "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3="
+            }
+        },
+        {
+            "compas_dataset_models": {
+                "edges": [
+                    {
+                        "node": {
+                            "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=",
+                            "files": [
+                                'test_file.h5'
+                            ],
+                            'compas_model': model_data,
+                            'compas_publication': publication_data
                         }
                     }
                 ]
@@ -894,6 +970,280 @@ def test_delete_model(setup_gwl_request):
         {
             'input': {
                 'id': model.id
+            }
+        }
+    )
+
+
+def test_create_dataset(create_dataset_request, mock_publication_data):
+    gw, mock_request = create_dataset_request
+    publication_data, model_data = mock_publication_data
+
+    publication = Publication(**publication_data)
+    model = Model(**model_data)
+
+    with NamedTemporaryFile() as tf:
+        dataset = gw.create_dataset(publication, model, Path(tf.name))
+
+    assert dataset.id == 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3='
+    assert dataset.files == ['test_file.h5']
+
+    for k, v in publication.__dict__.items():
+        assert getattr(dataset.publication, k) == v
+
+    for k, v in model.__dict__.items():
+        assert getattr(dataset.model, k) == v
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].args[0],
+        """
+            mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
+                addCompasDatasetModel(input: $input) {
+                    id
+                }
+            }
+        """
+    )
+
+    assert mock_request.mock_calls[0].args[1]['input']['compas_publication'] == publication.id
+    assert mock_request.mock_calls[0].args[1]['input']['compas_model'] == model.id
+    assert 'file' in mock_request.mock_calls[0].args[1]['input']
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[1].args[0],
+        """
+            query {
+                compasDatasetModels (id: "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=") {
+                    edges {
+                        node {
+                            id
+                            files
+                            compasPublication {
+                                id
+                                author
+                                published
+                                title
+                                year
+                                journal
+                                journalDoi
+                                datasetDoi
+                                creationTime
+                                description
+                                public
+                                downloadLink
+                                arxivId
+                                keywords {
+                                    edges {
+                                        node {
+                                            id
+                                            tag
+                                        }
+                                    }
+                                }
+                            }
+                            compasModel {
+                                id
+                                name
+                                summary
+                                description
+                            }
+                        }
+                    }
+                }
+            }
+        """
+    )
+
+
+def get_dataset(gwl, mock_request, mock_publication_data, publication=None, model=None, _id=None):
+    publication_data, model_data = mock_publication_data
+
+    publication_data = publication_data.copy()
+    publication_data['keywords'] = {
+        'edges': []
+    }
+
+    mock_request.return_value = {
+        "compas_dataset_models": {
+            "edges": [
+                {
+                    "node": {
+                        "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=",
+                        "files": [
+                            'test_file.h5'
+                        ],
+                        'compas_model': model_data,
+                        'compas_publication': publication_data
+                    }
+                }
+            ]
+        }
+    }
+
+    datasets = gwl.get_datasets(publication, model, _id)
+    assert len(datasets) == 1
+
+
+def test_get_datasets(setup_gwl_request, mock_publication_data):
+    gwl, mock_request = setup_gwl_request
+
+    get_dataset(gwl, mock_request, mock_publication_data)
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].args[0],
+        """
+            query {
+                compasDatasetModels {
+                    edges {
+                        node {
+                            id
+                            files
+                            compasPublication {
+                                id
+                                author
+                                published
+                                title
+                                year
+                                journal
+                                journalDoi
+                                datasetDoi
+                                creationTime
+                                description
+                                public
+                                downloadLink
+                                arxivId
+                                keywords {
+                                    edges {
+                                        node {
+                                            id
+                                            tag
+                                        }
+                                    }
+                                }
+                            }
+                            compasModel {
+                                id
+                                name
+                                summary
+                                description
+                            }
+                        }
+                    }
+                }
+            }
+        """
+    )
+
+
+def test_get_dataset_publication_model(setup_gwl_request, mock_publication_data):
+    gwl, mock_request = setup_gwl_request
+    publication_data, model_data = mock_publication_data
+
+    publication = Publication(**publication_data)
+    model = Model(**model_data)
+
+    get_dataset(gwl, mock_request, mock_publication_data, publication, model)
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].args[0],
+        """
+            query {
+                compasDatasetModels (
+                    compasPublication: "Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw",
+                    compasModel: "Q29tcGFzTW9kZWxOb2RlOjI="
+                ) {
+                    edges {
+                        node {
+                            id
+                            files
+                            compasPublication {
+                                id
+                                author
+                                published
+                                title
+                                year
+                                journal
+                                journalDoi
+                                datasetDoi
+                                creationTime
+                                description
+                                public
+                                downloadLink
+                                arxivId
+                                keywords {
+                                    edges {
+                                        node {
+                                            id
+                                            tag
+                                        }
+                                    }
+                                }
+                            }
+                            compasModel {
+                                id
+                                name
+                                summary
+                                description
+                            }
+                        }
+                    }
+                }
+            }
+        """
+    )
+
+
+def test_get_dataset_publication_model_id(setup_gwl_request, mock_publication_data):
+    gwl, mock_request = setup_gwl_request
+    publication_data, model_data = mock_publication_data
+
+    publication = Publication(**publication_data)
+    model = Model(**model_data)
+
+    with pytest.raises(AssertionError):
+        get_dataset(
+            gwl,
+            mock_request,
+            mock_publication_data,
+            publication,
+            model,
+            'not_gonna_work'
+        )
+
+
+def test_delete_dataset(setup_gwl_request, mock_publication_data):
+    gwl, mock_request = setup_gwl_request
+    publication_data, model_data = mock_publication_data
+
+    mock_request.return_value = {
+        "delete_compas_dataset_model": {
+            "result": True
+        }
+    }
+
+    publication = Publication(**publication_data)
+    model = Model(**model_data)
+
+    dataset = Dataset(**{
+        'id': 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=',
+        'publication': publication,
+        'model': model,
+        'files': ['my_file.h5']
+    })
+
+    gwl.delete_dataset(dataset)
+
+    mock_request.assert_called_with(
+        """
+            mutation DeleteCompasDatasetModelMutation($input: DeleteCompasDatasetModelMutationInput!) {
+                deleteCompasDatasetModel(input: $input) {
+                    result
+                }
+            }
+        """,
+        {
+            'input': {
+                'id': dataset.id
             }
         }
     )
