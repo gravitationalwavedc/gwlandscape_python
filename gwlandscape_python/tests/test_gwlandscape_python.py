@@ -2,6 +2,7 @@ import pytest
 
 from gwlandscape_python import GWLandscape
 from gwlandscape_python.keyword_type import Keyword
+from gwlandscape_python.model_type import Model
 from gwlandscape_python.publication_type import Publication
 from gwlandscape_python.tests.utils import compare_graphql_query
 
@@ -92,6 +93,40 @@ def create_publication_request(setup_gwl_request):
                                     }
                                 ]
                             }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+
+    gwl, mr = setup_gwl_request
+
+    def mock_request(*args, **kwargs):
+        return response_data.pop(0)
+
+    mr.side_effect = mock_request
+
+    return gwl, mr
+
+
+@pytest.fixture
+def create_model_request(setup_gwl_request):
+    response_data = [
+        {
+            "add_compas_model": {
+                "id": "Q29tcGFzTW9kZWxOb2RlOjI="
+            }
+        },
+        {
+            "compas_models": {
+                "edges": [
+                    {
+                        "node": {
+                            "id": "Q29tcGFzTW9kZWxOb2RlOjI=",
+                            "name": "my_name",
+                            "summary": "my_summary",
+                            "description": "my_description"
                         }
                     }
                 ]
@@ -411,8 +446,6 @@ def test_create_publication(create_publication_request):
         }
     }
 
-    print(mock_request.mock_calls[1].args[0])
-
     assert compare_graphql_query(
         mock_request.mock_calls[1].args[0],
         """
@@ -684,6 +717,183 @@ def test_delete_publication(setup_gwl_request):
         {
             'input': {
                 'id': publication.id
+            }
+        }
+    )
+
+
+def test_create_model(create_model_request):
+    gw, mock_request = create_model_request
+
+    model = gw.create_model('my_name', 'my_summary', 'my_description')
+
+    assert model.id == 'Q29tcGFzTW9kZWxOb2RlOjI='
+    assert model.name == 'my_name'
+    assert model.summary == 'my_summary'
+    assert model.description == 'my_description'
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].args[0],
+        """
+            mutation AddCompasModelMutation($input: AddCompasModelMutationInput!) {
+                addCompasModel(input: $input) {
+                    id
+                }
+            }
+        """
+    )
+
+    assert mock_request.mock_calls[0].args[1] == {
+        'input': {
+            'name': 'my_name',
+            'summary': 'my_summary',
+            'description': 'my_description'
+        }
+    }
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[1].args[0],
+        """
+            query {
+                compasModels (id: "Q29tcGFzTW9kZWxOb2RlOjI=") {
+                    edges {
+                        node {
+                            id
+                            name
+                            summary
+                            description
+                        }
+                    }
+                }
+            }
+        """
+    )
+
+
+def get_model(gwl, mock_request, name=None, summary=None, description=None, _id=None):
+    mock_request.return_value = {
+        "compas_models": {
+            "edges": [
+                {
+                    "node": {
+                        "id": "Q29tcGFzTW9kZWxOb2RlOjI=",
+                        "name": "my_name",
+                        "summary": "my_summary",
+                        "description": "my_description"
+                    }
+                }
+            ]
+        }
+    }
+
+    models = gwl.get_models(name, summary, description, _id)
+    assert len(models) == 1
+
+    model = models[0]
+
+    assert model.id == 'Q29tcGFzTW9kZWxOb2RlOjI='
+    assert model.name == 'my_name'
+    assert model.summary == 'my_summary'
+    assert model.description == 'my_description'
+
+
+def test_get_models(setup_gwl_request):
+    gwl, mock_request = setup_gwl_request
+
+    get_model(gwl, mock_request)
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].args[0],
+        """
+            query {
+                compasModels {
+                    edges {
+                        node {
+                            id
+                            name
+                            summary
+                            description
+                        }
+                    }
+                }
+            }
+        """
+    )
+
+
+def test_get_model_name_summary_description(setup_gwl_request):
+    gwl, mock_request = setup_gwl_request
+
+    get_model(gwl, mock_request, name='test_name', summary='test_summary', description='test_description')
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].args[0],
+        """
+            query {
+                compasModels (
+                    name_Icontains: "test_name",
+                    summary_Icontains: "test_summary",
+                    description_Icontains: "test_description"
+                ) {
+                    edges {
+                        node {
+                            id
+                            name
+                            summary
+                            description
+                        }
+                    }
+                }
+            }
+        """
+    )
+
+
+def test_get_model_name_summary_description_id(setup_gwl_request):
+    gwl, mock_request = setup_gwl_request
+
+    with pytest.raises(AssertionError):
+        get_model(
+            gwl,
+            mock_request,
+            name='test_name',
+            summary='test_summary',
+            description='test_description',
+            _id='not_gonna_work'
+        )
+
+
+def test_delete_model(setup_gwl_request):
+    gwl, mock_request = setup_gwl_request
+
+    mock_request.return_value = {
+        "delete_compas_model": {
+            "result": True
+        }
+    }
+
+    model = Model(
+        **{
+            'name': 'my_name',
+            'summary': 'my_summary',
+            'description': 'my_description',
+            'id': 'Q29tcGFzTW9kZWxOb2RlOjI='
+        }
+    )
+
+    gwl.delete_model(model)
+
+    mock_request.assert_called_with(
+        """
+            mutation DeleteCompasModelMutation($input: DeleteCompasModelMutationInput!) {
+                deleteCompasModel(input: $input) {
+                    result
+                }
+            }
+        """,
+        {
+            'input': {
+                'id': model.id
             }
         }
     )
