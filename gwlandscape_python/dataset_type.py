@@ -9,4 +9,4 @@ class Dataset:
     id: str
     publication: Publication
     model: Model
-    files: list[str]
+    files: list
