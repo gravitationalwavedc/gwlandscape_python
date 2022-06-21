@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from gwdc_python import GWDC
 from gwdc_python.logger import create_logger
 
+from .dataset_type import Dataset
 from .keyword_type import Keyword
 from .model_type import Model
 from .publication_type import Publication
@@ -457,3 +460,173 @@ class GWLandscape:
         result = self.request(mutation, params)
 
         assert result['delete_compas_model']['result']
+
+    def create_dataset(self, publication, model, datafile):
+        """
+        Creates a new dataset object with the specified publication and model.
+
+        Parameters
+        ----------
+        publication : Publication
+            The Publication this dataset is for
+        model : Model
+            The model this dataset is for
+        datafile : Path
+            Local path to the COMPAS dataset file
+
+        Return
+        ------
+        Publication instance representing the publication created
+        """
+        mutation = """
+            mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
+                addCompasDatasetModel(input: $input) {
+                    id
+                }
+            }
+        """
+
+        params = {
+            'input': {
+                'compas_publication': publication.id,
+                'compas_model': model.id,
+                'file': Path(datafile).open('rb')
+            }
+        }
+
+        result = self.request(mutation, params)
+
+        assert 'id' in result['add_compas_dataset_model']
+
+        return self.get_datasets(_id=result['add_compas_dataset_model']['id'])[0]
+
+    def get_datasets(self, publication=None, model=None, _id=None):
+        """
+        Fetch all dataset models with publication/model matching the provided parameters.
+        Also allows fetching models by the provided ID
+
+        At most, only one of (publication, model) or _id must be provided. If no parameter is provided, all
+        dataset models are returned.
+
+        Parameters
+        ----------
+        publication : Publication, optional
+            Match all dataset models with this publication
+        model : Model, optional
+            Match all dataset models with this publication
+        _id : str, optional
+            Match model by the provided ID
+
+        Return
+        ------
+        A list of Dataset instances. If nothing was found the list will be empty.
+        """
+
+        # Make sure exactly one parameter is provided
+        param_provided = publication or model
+        if param_provided:
+            assert not _id
+
+        if _id:
+            assert not param_provided
+
+        search_component = []
+        if publication:
+            search_component.append(f'compasPublication: "{publication.id}"')
+
+        if model:
+            search_component.append(f'compasModel: "{model.id}"')
+
+        if _id:
+            search_component.append(f'id: "{_id}"')
+
+        query = f"""
+            query {{
+                compasDatasetModels {'' if not search_component else ('(' + ','.join(search_component) + ')')} {{
+                    edges {{
+                        node {{
+                            id
+                            files
+                            compasPublication {{
+                                id
+                                author
+                                published
+                                title
+                                year
+                                journal
+                                journalDoi
+                                datasetDoi
+                                creationTime
+                                description
+                                public
+                                downloadLink
+                                arxivId
+                                keywords {{
+                                    edges {{
+                                        node {{
+                                            id
+                                            tag
+                                        }}
+                                    }}
+                                }}
+                            }}
+                            compasModel {{
+                                id
+                                name
+                                summary
+                                description
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        """
+
+        result = self.request(query)
+
+        # Handle publication and model objects
+        for dataset in result['compas_dataset_models']['edges']:
+            # Handle publication keywords
+            dataset['node']['compas_publication']['keywords'] = \
+                [Keyword(**kw['node']) for kw in dataset['node']['compas_publication']['keywords']['edges']]
+
+            dataset['node']['publication'] = Publication(**dataset['node']['compas_publication'])
+            dataset['node']['model'] = Model(**dataset['node']['compas_model'])
+
+            # Delete the compas_ fields - we don't need them anymore
+            del dataset['node']['compas_publication']
+            del dataset['node']['compas_model']
+
+        return [Dataset(**kw['node']) for kw in result['compas_dataset_models']['edges']]
+
+    def delete_dataset(self, dataset):
+        """
+        Delete a dataset represented by the provided dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            The Dataset instance to delete
+
+        Return
+        ------
+        None
+        """
+
+        mutation = """
+            mutation DeleteCompasDatasetModelMutation($input: DeleteCompasDatasetModelMutationInput!) {
+                deleteCompasDatasetModel(input: $input) {
+                    result
+                }
+            }
+        """
+
+        params = {
+            'input': {
+                'id': dataset.id
+            }
+        }
+
+        result = self.request(mutation, params)
+
+        assert result['delete_compas_dataset_model']['result']
