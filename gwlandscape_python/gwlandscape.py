@@ -7,7 +7,8 @@ from .dataset_type import Dataset
 from .keyword_type import Keyword
 from .model_type import Model
 from .publication_type import Publication
-from .settings import GWLANDSCAPE_ENDPOINT
+from .utils import mutually_exclusive
+from .settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
 
 logger = create_logger(__name__)
 
@@ -29,8 +30,13 @@ class GWLandscape:
         Handles a lot of the underlying logic surrounding the queries
     """
 
-    def __init__(self, token, endpoint=GWLANDSCAPE_ENDPOINT):
-        self.client = GWDC(token=token, endpoint=endpoint)
+    def __init__(self, token="", auth_endpoint=GWLANDSCAPE_AUTH_ENDPOINT, endpoint=GWLANDSCAPE_ENDPOINT):
+        self.client = GWDC(
+            token=token,
+            auth_endpoint=auth_endpoint,
+            endpoint=endpoint,
+        )
+
         self.request = self.client.request  # Setting shorthand for simplicity
 
     def create_keyword(self, tag):
@@ -66,6 +72,7 @@ class GWLandscape:
 
         return self.get_keywords(_id=result['add_keyword']['id'])[0]
 
+    @mutually_exclusive('exact', 'contains', '_id')
     def get_keywords(self, exact=None, contains=None, _id=None):
         """
         Fetch all keywords matching exactly the provided parameter, any keywords with tags containing the term in
@@ -88,33 +95,26 @@ class GWLandscape:
         A list of Keyword instances. If nothing was found the list will be empty.
         """
 
-        # Make sure exactly one parameter is provided
-        assert sum(x is not None for x in (exact, contains, _id)) <= 1
-
-        keyword_component = ''
-        if exact:
-            keyword_component = f'(tag: "{exact}")'
-
-        if contains:
-            keyword_component = f'(tag_Icontains: "{contains}")'
-
-        if _id:
-            keyword_component = f'(id: "{_id}")'
-
-        query = f"""
-            query {{
-                keywords {keyword_component} {{
-                    edges {{
-                        node {{
+        query = """
+            query ($exact: String, $contains: String, $id: ID) {
+                keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
+                    edges {
+                        node {
                             id
                             tag
-                        }}
-                    }}
-                }}
-            }}
+                        }
+                    }
+                }
+            }
         """
 
-        result = self.request(query)
+        variables = {
+            'exact': exact,
+            'contains': contains,
+            'id': _id
+        }
+
+        result = self.request(query=query, variables=variables)
 
         return [Keyword(**kw['node']) for kw in result['keywords']['edges']]
 
@@ -214,6 +214,7 @@ class GWLandscape:
 
         return self.get_publications(_id=result['add_publication']['id'])[0]
 
+    @mutually_exclusive('author | title', '_id')
     def get_publications(self, author=None, title=None, _id=None):
         """
         Fetch all publications with author/title/arxiv id containing the values specified.
@@ -236,29 +237,15 @@ class GWLandscape:
         A list of Publication instances. If nothing was found the list will be empty.
         """
 
-        # Make sure exactly one parameter is provided
-        param_provided = author or title
-        if param_provided:
-            assert not _id
-
-        if _id:
-            assert not param_provided
-
-        search_component = []
-        if title:
-            search_component.append(f'title_Icontains: "{title}"')
-
-        if author:
-            search_component.append(f'author_Icontains: "{author}"')
-
-        if _id:
-            search_component.append(f'id: "{_id}"')
-
-        query = f"""
-            query {{
-                compasPublications {'' if not search_component else ('(' + ','.join(search_component) + ')')} {{
-                    edges {{
-                        node {{
+        query = """
+            query ($author: String, $title: String, $id: ID) {
+                compasPublications (
+                    author_Icontains: $author,
+                    title_Icontains: $title,
+                    id: $id
+                ) {
+                    edges {
+                        node {
                             id
                             author
                             published
@@ -272,21 +259,27 @@ class GWLandscape:
                             public
                             downloadLink
                             arxivId
-                            keywords {{
-                                edges {{
-                                    node {{
+                            keywords {
+                                edges {
+                                    node {
                                         id
                                         tag
-                                    }}
-                                }}
-                            }}
-                        }}
-                    }}
-                }}
-            }}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         """
 
-        result = self.request(query)
+        variables = {
+            'author': author,
+            'title': title,
+            'id': _id
+        }
+
+        result = self.request(query=query, variables=variables)
 
         # Handle keywords
         for pub in result['compas_publications']['edges']:
@@ -365,6 +358,7 @@ class GWLandscape:
 
         return self.get_models(_id=result['add_compas_model']['id'])[0]
 
+    @mutually_exclusive('name | summary | description', '_id')
     def get_models(self, name=None, summary=None, description=None, _id=None):
         """
         Fetch all models with name/summary/description containing the values specified.
@@ -389,43 +383,34 @@ class GWLandscape:
         A list of Model instances. If nothing was found the list will be empty.
         """
 
-        # Make sure exactly one parameter is provided
-        param_provided = name or summary or description
-        if param_provided:
-            assert not _id
-
-        if _id:
-            assert not param_provided
-
-        search_component = []
-        if name:
-            search_component.append(f'name_Icontains: "{name}"')
-
-        if summary:
-            search_component.append(f'summary_Icontains: "{summary}"')
-
-        if description:
-            search_component.append(f'description_Icontains: "{description}"')
-
-        if _id:
-            search_component.append(f'id: "{_id}"')
-
-        query = f"""
-            query {{
-                compasModels {'' if not search_component else ('(' + ','.join(search_component) + ')')} {{
-                    edges {{
-                        node {{
+        query = """
+            query ($name: String, $summary: String, $description: String, $id: ID) {
+                compasModels (
+                    name_Icontains: $name,
+                    summary_Icontains: $summary,
+                    description_Icontains: $description,
+                    id: $id
+                ) {
+                    edges {
+                        node {
                             id
                             name
                             summary
                             description
-                        }}
-                    }}
-                }}
-            }}
+                        }
+                    }
+                }
+            }
         """
 
-        result = self.request(query)
+        variables = {
+            'name': name,
+            'summary': summary,
+            'description': description,
+            'id': _id
+        }
+
+        result = self.request(query=query, variables=variables)
 
         return [Model(**kw['node']) for kw in result['compas_models']['edges']]
 
@@ -500,6 +485,7 @@ class GWLandscape:
 
         return self.get_datasets(_id=result['add_compas_dataset_model']['id'])[0]
 
+    @mutually_exclusive('publication | model', '_id')
     def get_datasets(self, publication=None, model=None, _id=None):
         """
         Fetch all dataset models with publication/model matching the provided parameters.
@@ -522,32 +508,14 @@ class GWLandscape:
         A list of Dataset instances. If nothing was found the list will be empty.
         """
 
-        # Make sure exactly one parameter is provided
-        param_provided = publication or model
-        if param_provided:
-            assert not _id
-
-        if _id:
-            assert not param_provided
-
-        search_component = []
-        if publication:
-            search_component.append(f'compasPublication: "{publication.id}"')
-
-        if model:
-            search_component.append(f'compasModel: "{model.id}"')
-
-        if _id:
-            search_component.append(f'id: "{_id}"')
-
-        query = f"""
-            query {{
-                compasDatasetModels {'' if not search_component else ('(' + ','.join(search_component) + ')')} {{
-                    edges {{
-                        node {{
+        query = """
+            query ($publication: ID, $model: ID, $id: ID) {
+                compasDatasetModels (compasPublication: $publication, compasModel: $model, id: $id) {
+                    edges {
+                        node {
                             id
                             files
-                            compasPublication {{
+                            compasPublication {
                                 id
                                 author
                                 published
@@ -561,28 +529,34 @@ class GWLandscape:
                                 public
                                 downloadLink
                                 arxivId
-                                keywords {{
-                                    edges {{
-                                        node {{
+                                keywords {
+                                    edges {
+                                        node {
                                             id
                                             tag
-                                        }}
-                                    }}
-                                }}
-                            }}
-                            compasModel {{
+                                        }
+                                    }
+                                }
+                            }
+                            compasModel {
                                 id
                                 name
                                 summary
                                 description
-                            }}
-                        }}
-                    }}
-                }}
-            }}
+                            }
+                        }
+                    }
+                }
+            }
         """
 
-        result = self.request(query)
+        variables = {
+            'publication': publication.id if publication else None,
+            'model': model.id if model else None,
+            'id': _id
+        }
+
+        result = self.request(query=query, variables=variables)
 
         # Handle publication and model objects
         for dataset in result['compas_dataset_models']['edges']:
