@@ -1,5 +1,5 @@
 Getting started with gwlandscape-python
-=======================================
+===================================
 
 Installation
 ------------
@@ -17,7 +17,12 @@ Getting Access
 --------------
 
 In order to be able to use the gwlandscape-python package, you will need LIGO credentials or a GWLandscape account. You will also need an API Token associated with that account.
-You can use your GWLandscape or LIGO account details on the GWLandscape `login page <https://gwlandscape.org.au/auth/>`_. If you don't have an existing GWLandscape account, `register here <https://gwlandscape.org.au/auth/register/>`_.
+You can use your GWLandscape or LIGO account details on the GWLandscape `login page <https://gwlandscape.org.au/auth/>`_.
+
+
+If you don't have an existing GWLandscape account, `register here <https://gwlandscape.org.au/auth/register/>`_.
+
+
 Using your GWLandscape or LIGO account, you can generate an `API token <https://gwlandscape.org.au/auth/api-token>`_.
 You should be greeted with a page which has a "Create Token" button. If you click on this, a new, unique API token will be generated, which can be revealed by clicking on the text.
 
