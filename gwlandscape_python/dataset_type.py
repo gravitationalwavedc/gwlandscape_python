@@ -10,3 +10,6 @@ class Dataset:
     publication: Publication
     model: Model
     files: list
+
+    def __repr__(self):
+        return f'Dataset({self.publication} - {self.model})'

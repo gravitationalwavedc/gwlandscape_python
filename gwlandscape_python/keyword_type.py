@@ -5,3 +5,6 @@ from dataclasses import dataclass
 class Keyword:
     id: str
     tag: str
+
+    def __repr__(self):
+        return f'Keyword("{self.tag}")'

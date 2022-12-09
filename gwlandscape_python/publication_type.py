@@ -17,3 +17,6 @@ class Publication:
     arxiv_id: str
     creation_time: str
     keywords: list
+
+    def __repr__(self):
+        return f'Publication("{self.title}")'

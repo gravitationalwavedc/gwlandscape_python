@@ -48,9 +48,10 @@ class GWLandscape:
         tag : str
             The tag of the keyword to be created
 
-        Return
-        ------
-        Keyword instance representing the keyword created
+        Returns
+        -------
+        Keyword
+            Created Keyword
         """
         mutation = """
             mutation AddKeywordMutation($input: AddKeywordMutationInput!) {
@@ -84,15 +85,16 @@ class GWLandscape:
         Parameters
         ----------
         exact : str, optional
-            Match keywords with this exact tag (case-insensitive)
+            Match keywords with this exact tag (case-insensitive), by default None
         contains : str, optional
-            Match keywords containing this text (case-insensitive))
+            Match keywords containing this text (case-insensitive)), by default None
         _id : str, optional
-            Match keyword by the provided ID
+            Match keyword by the provided ID, by default None
 
-        Return
-        ------
-        A list of Keyword instances. If nothing was found the list will be empty.
+        Returns
+        -------
+        list
+            A list of :class:`.Keyword` instances
         """
 
         query = """
@@ -126,10 +128,6 @@ class GWLandscape:
         ----------
         keyword: Keyword
             The Keyword instance to delete
-
-        Return
-        ------
-        None
         """
 
         mutation = """
@@ -162,30 +160,33 @@ class GWLandscape:
             The title of the publication
         arxiv_id : str
             The arxiv id of the publication
-        **kwargs
-            Possible kwargs for a publication:
-            published : bool
-                If the publication was published in a journal/arxiv
-            year : int
-                The year of the publication
-            journal : str
-                The name of the journal
-            journal_doi : str
-                The DOI of the publication
-            dataset_doi : str
-                The DOI of the dataset
-            description : str
-                A description of the publication
-            public : bool
-                If the publication has been made public (visible to the public)
-            download_link : str
-                A link to download the publication/dataset
-            keywords : list [Keyword]
-                A list of keywords for the publication
+        **kwargs : dict, optional
+            Extra keyword arguments that are provided to GWLandscape to create a publication.
+            Accepted keys are:
 
-        Return
-        ------
-        Publication instance representing the publication created
+            published: (`bool`)
+                If the publication was published in a journal/arXiv
+            year : (`int`)
+                The year of the publication
+            journal : (`str`)
+                The name of the journal
+            journal_doi : (`str`)
+                The DOI of the publication
+            dataset_doi : (`str`)
+                The DOI of the dataset
+            description : (`str`)
+                A description of the publication
+            public : (`bool`)
+                If the publication has been made public (visible to the public)
+            download_link : (`str`)
+                A link to download the publication/dataset
+            keywords : (`list`)
+                A list of :class:`~.Keyword` objects for the publication
+
+        Returns
+        -------
+        Publication
+            Created Publication
         """
         mutation = """
             mutation AddPublicationMutation($input: AddPublicationMutationInput!) {
@@ -226,15 +227,16 @@ class GWLandscape:
         Parameters
         ----------
         author : str, optional
-            Match publication author contains this value (case-insensitive)
+            Match publication author contains this value (case-insensitive), by default None
         title : str, optional
-            Match publication arxiv id exactly equals this value (case-insensitive)
+            Match publication arxiv id exactly equals this value (case-insensitive), by default None
         _id : str, optional
-            Match publication by the provided ID
+            Match publication by the provided ID, by default None
 
-        Return
-        ------
-        A list of Publication instances. If nothing was found the list will be empty.
+        Returns
+        -------
+        list
+            A list of :class:`.Publication` instances
         """
 
         query = """
@@ -295,10 +297,6 @@ class GWLandscape:
         ----------
         publication: Publication
             The Publication instance to delete
-
-        Return
-        ------
-        None
         """
 
         mutation = """
@@ -328,13 +326,14 @@ class GWLandscape:
         name : str
             The name of the model to be created
         summary : str, optional
-            The summary of the model to be created
+            The summary of the model to be created, by default None
         description : str, optional
-            The description of the model to be created
+            The description of the model to be created, by default None
 
-        Return
-        ------
-        Model instance representing the model created
+        Returns
+        -------
+        Model
+            Created Model
         """
         mutation = """
             mutation AddCompasModelMutation($input: AddCompasModelMutationInput!) {
@@ -370,17 +369,18 @@ class GWLandscape:
         Parameters
         ----------
         name : str, optional
-            Match model name containing this value (case-insensitive)
+            Match model name containing this value (case-insensitive), by default None
         summary : str, optional
-            Match model summary contains this value (case-insensitive)
+            Match model summary contains this value (case-insensitive), by default None
         description : str, optional
-            Match model description contains this value (case-insensitive)
+            Match model description contains this value (case-insensitive), by default None
         _id : str, optional
-            Match model by the provided ID
+            Match model by the provided ID, by default None
 
-        Return
-        ------
-        A list of Model instances. If nothing was found the list will be empty.
+        Returns
+        -------
+        list
+            A list of :class:`.Model` instances
         """
 
         query = """
@@ -422,10 +422,6 @@ class GWLandscape:
         ----------
         model: Model
             The Model instance to delete
-
-        Return
-        ------
-        None
         """
 
         mutation = """
@@ -459,9 +455,10 @@ class GWLandscape:
         datafile : Path
             Local path to the COMPAS dataset file
 
-        Return
-        ------
-        Publication instance representing the publication created
+        Returns
+        -------
+        Dataset
+            Created Dataset
         """
         mutation = """
             mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
@@ -497,15 +494,16 @@ class GWLandscape:
         Parameters
         ----------
         publication : Publication, optional
-            Match all dataset models with this publication
+            Match all dataset models with this publication, by default None
         model : Model, optional
-            Match all dataset models with this publication
+            Match all dataset models with this publication, by default None
         _id : str, optional
-            Match model by the provided ID
+            Match model by the provided ID, by default None
 
-        Return
-        ------
-        A list of Dataset instances. If nothing was found the list will be empty.
+        Returns
+        -------
+        list
+            A list of Dataset instances
         """
 
         query = """
@@ -581,10 +579,6 @@ class GWLandscape:
         ----------
         dataset: Dataset
             The Dataset instance to delete
-
-        Return
-        ------
-        None
         """
 
         mutation = """
