@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gwlandscape-python"
-version = "1.0.0"
+version = "0.1.0"
 description = "Wrapper of GWDC API, used for interacting with the GWLandscape endpoints"
 authors = ["Thomas Reichardt <treichardt@swin.edu.au>", "Lewis Lakerink <llakerink@swin.edu.au"]
 license = "MIT"
