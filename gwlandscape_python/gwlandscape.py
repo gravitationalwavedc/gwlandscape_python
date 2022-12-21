@@ -468,15 +468,16 @@ class GWLandscape:
             }
         """
 
-        params = {
-            'input': {
-                'compas_publication': publication.id,
-                'compas_model': model.id,
-                'file': Path(datafile).open('rb')
+        with Path(datafile).open('rb') as f:
+            params = {
+                'input': {
+                    'compas_publication': publication.id,
+                    'compas_model': model.id,
+                    'file': f
+                }
             }
-        }
 
-        result = self.request(mutation, params)
+            result = self.request(mutation, params)
 
         assert 'id' in result['add_compas_dataset_model']
 
