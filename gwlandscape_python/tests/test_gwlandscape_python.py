@@ -1,5 +1,7 @@
+import uuid
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from unittest.mock import call
 
 import pytest
 
@@ -188,7 +190,12 @@ def create_dataset_request(setup_gwl_request, mock_publication_data):
 
     response_data = [
         {
-            "add_compas_dataset_model": {
+            "generate_compas_dataset_model_upload_token": {
+                "token": str(uuid.uuid4())
+            }
+        },
+        {
+            "upload_compas_dataset_model": {
                 "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3="
             }
         },
@@ -1082,22 +1089,33 @@ def test_create_dataset(create_dataset_request, mock_publication_data):
         assert getattr(dataset.model, k) == v
 
     assert compare_graphql_query(
-        mock_request.mock_calls[0].args[0],
+        mock_request.mock_calls[0].kwargs['query'],
         """
-            mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
-                addCompasDatasetModel(input: $input) {
+            query GenerateCompasDatasetModelUploadToken {
+                generateCompasDatasetModelUploadToken {
+                  token
+                }
+            }
+        """
+    )
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[1].kwargs['query'],
+        """
+            mutation UploadCompasDatasetModelMutation($input: UploadCompasDatasetModelMutationInput!) {
+                uploadCompasDatasetModel(input: $input) {
                     id
                 }
             }
         """
     )
 
-    assert mock_request.mock_calls[0].args[1]['input']['compas_publication'] == publication.id
-    assert mock_request.mock_calls[0].args[1]['input']['compas_model'] == model.id
-    assert 'file' in mock_request.mock_calls[0].args[1]['input']
+    assert mock_request.mock_calls[1].kwargs['variables']['input']['compas_publication'] == publication.id
+    assert mock_request.mock_calls[1].kwargs['variables']['input']['compas_model'] == model.id
+    assert 'jobFile' in mock_request.mock_calls[1].kwargs['variables']['input']
 
     assert compare_graphql_query(
-        mock_request.mock_calls[1].kwargs['query'],
+        mock_request.mock_calls[2].kwargs['query'],
         """
             query ($publication: ID, $model: ID, $id: ID) {
                 compasDatasetModels (compasPublication: $publication, compasModel: $model, id: $id) {
@@ -1141,7 +1159,7 @@ def test_create_dataset(create_dataset_request, mock_publication_data):
         """
     )
 
-    assert mock_request.mock_calls[1].kwargs['variables'] == {
+    assert mock_request.mock_calls[2].kwargs['variables'] == {
         'publication': None,
         'model': None,
         'id': 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3='

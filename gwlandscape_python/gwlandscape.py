@@ -460,28 +460,29 @@ class GWLandscape:
         Dataset
             Created Dataset
         """
-        mutation = """
-            mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
-                addCompasDatasetModel(input: $input) {
+        query = """
+            mutation UploadCompasDatasetModelMutation($input: UploadCompasDatasetModelMutationInput!) {
+                uploadCompasDatasetModel(input: $input) {
                     id
                 }
             }
         """
 
         with Path(datafile).open('rb') as f:
-            params = {
+            variables = {
                 'input': {
+                    "uploadToken": self._generate_compas_dataset_model_upload_token(),
                     'compas_publication': publication.id,
                     'compas_model': model.id,
-                    'file': f
+                    'jobFile': f
                 }
             }
 
-            result = self.request(mutation, params)
+            result = self.request(query=query, variables=variables, authorize=False)
 
-        assert 'id' in result['add_compas_dataset_model']
+        assert 'id' in result['upload_compas_dataset_model']
 
-        return self.get_datasets(_id=result['add_compas_dataset_model']['id'])[0]
+        return self.get_datasets(_id=result['upload_compas_dataset_model']['id'])[0]
 
     @mutually_exclusive('publication | model', '_id')
     def get_datasets(self, publication=None, model=None, _id=None):
@@ -599,3 +600,22 @@ class GWLandscape:
         result = self.request(mutation, params)
 
         assert result['delete_compas_dataset_model']['result']
+
+    def _generate_compas_dataset_model_upload_token(self):
+        """Creates a new long lived upload token for use uploading compas publications
+
+        Returns
+        -------
+        str
+            The upload token
+        """
+        query = """
+            query GenerateCompasDatasetModelUploadToken {
+                generateCompasDatasetModelUploadToken {
+                  token
+                }
+            }
+        """
+
+        data = self.request(query=query)
+        return data['generate_compas_dataset_model_upload_token']['token']
