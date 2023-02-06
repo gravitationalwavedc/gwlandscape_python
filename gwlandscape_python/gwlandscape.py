@@ -7,7 +7,7 @@ from .dataset_type import Dataset
 from .keyword_type import Keyword
 from .model_type import Model
 from .publication_type import Publication
-from .settings import GWLANDSCAPE_ENDPOINT
+from .settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
 
 logger = create_logger(__name__)
 
@@ -29,8 +29,8 @@ class GWLandscape:
         Handles a lot of the underlying logic surrounding the queries
     """
 
-    def __init__(self, token, endpoint=GWLANDSCAPE_ENDPOINT):
-        self.client = GWDC(token=token, endpoint=endpoint)
+    def __init__(self, token, auth_endpoint=GWLANDSCAPE_AUTH_ENDPOINT, endpoint=GWLANDSCAPE_ENDPOINT):
+        self.client = GWDC(token=token, endpoint=endpoint, auth_endpoint=auth_endpoint)
         self.request = self.client.request  # Setting shorthand for simplicity
 
     def create_keyword(self, tag):
@@ -478,27 +478,29 @@ class GWLandscape:
         ------
         Publication instance representing the publication created
         """
-        mutation = """
-            mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
-                addCompasDatasetModel(input: $input) {
+        query = """
+            mutation UploadCompasDatasetModelMutation($input: UploadCompasDatasetModelMutationInput!) {
+                uploadCompasDatasetModel(input: $input) {
                     id
                 }
             }
         """
 
-        params = {
-            'input': {
-                'compas_publication': publication.id,
-                'compas_model': model.id,
-                'file': Path(datafile).open('rb')
+        with open(datafile, 'rb') as f:
+            variables = {
+                'input': {
+                    "uploadToken": self._generate_compas_dataset_model_upload_token(),
+                    'compas_publication': publication.id,
+                    'compas_model': model.id,
+                    'jobFile': f
+                }
             }
-        }
 
-        result = self.request(mutation, params)
+            result = self.request(query=query, variables=variables, authorize=False)
 
-        assert 'id' in result['add_compas_dataset_model']
+        assert 'id' in result['upload_compas_dataset_model']
 
-        return self.get_datasets(_id=result['add_compas_dataset_model']['id'])[0]
+        return self.get_datasets(_id=result['upload_compas_dataset_model']['id'])[0]
 
     def get_datasets(self, publication=None, model=None, _id=None):
         """
@@ -582,7 +584,7 @@ class GWLandscape:
             }}
         """
 
-        result = self.request(query)
+        result = self.request(query=query)
 
         # Handle publication and model objects
         for dataset in result['compas_dataset_models']['edges']:
@@ -630,3 +632,22 @@ class GWLandscape:
         result = self.request(mutation, params)
 
         assert result['delete_compas_dataset_model']['result']
+
+    def _generate_compas_dataset_model_upload_token(self):
+        """Creates a new long lived upload token for use uploading compas publications
+
+        Returns
+        -------
+        str
+            The upload token
+        """
+        query = """
+            query GenerateCompasDatasetModelUploadToken {
+                generateCompasDatasetModelUploadToken {
+                  token
+                }
+            }
+        """
+
+        data = self.request(query=query)
+        return data['generate_compas_dataset_model_upload_token']['token']

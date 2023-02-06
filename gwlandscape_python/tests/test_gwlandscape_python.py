@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -13,7 +14,7 @@ from gwlandscape_python.tests.utils import compare_graphql_query
 
 @pytest.fixture
 def setup_gwl_request(mocker):
-    def mock_init(self, token, endpoint):
+    def mock_init(self, token, auth_endpoint, endpoint):
         pass
 
     mock_request = mocker.Mock()
@@ -188,7 +189,12 @@ def create_dataset_request(setup_gwl_request, mock_publication_data):
 
     response_data = [
         {
-            "add_compas_dataset_model": {
+            "generate_compas_dataset_model_upload_token": {
+                "token": str(uuid.uuid4())
+            }
+        },
+        {
+            "upload_compas_dataset_model": {
                 "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3="
             }
         },
@@ -985,6 +991,17 @@ def test_create_dataset(create_dataset_request, mock_publication_data):
     with NamedTemporaryFile() as tf:
         dataset = gw.create_dataset(publication, model, Path(tf.name))
 
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].kwargs['query'],
+        """
+            query GenerateCompasDatasetModelUploadToken {
+                generateCompasDatasetModelUploadToken {
+                  token
+                }
+            }
+        """
+    )
+
     assert dataset.id == 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3='
     assert dataset.files == ['test_file.h5']
 
@@ -995,22 +1012,22 @@ def test_create_dataset(create_dataset_request, mock_publication_data):
         assert getattr(dataset.model, k) == v
 
     assert compare_graphql_query(
-        mock_request.mock_calls[0].args[0],
+        mock_request.mock_calls[1].kwargs['query'],
         """
-            mutation AddCompasDatasetModelMutation($input: AddCompasDatasetModelMutationInput!) {
-                addCompasDatasetModel(input: $input) {
+            mutation UploadCompasDatasetModelMutation($input: UploadCompasDatasetModelMutationInput!) {
+                uploadCompasDatasetModel(input: $input) {
                     id
                 }
             }
         """
     )
 
-    assert mock_request.mock_calls[0].args[1]['input']['compas_publication'] == publication.id
-    assert mock_request.mock_calls[0].args[1]['input']['compas_model'] == model.id
-    assert 'file' in mock_request.mock_calls[0].args[1]['input']
+    assert mock_request.mock_calls[1].kwargs['variables']['input']['compas_publication'] == publication.id
+    assert mock_request.mock_calls[1].kwargs['variables']['input']['compas_model'] == model.id
+    assert 'jobFile' in mock_request.mock_calls[1].kwargs['variables']['input']
 
     assert compare_graphql_query(
-        mock_request.mock_calls[1].args[0],
+        mock_request.mock_calls[2].kwargs['query'],
         """
             query {
                 compasDatasetModels (id: "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=") {
@@ -1090,7 +1107,7 @@ def test_get_datasets(setup_gwl_request, mock_publication_data):
     get_dataset(gwl, mock_request, mock_publication_data)
 
     assert compare_graphql_query(
-        mock_request.mock_calls[0].args[0],
+        mock_request.mock_calls[0].kwargs['query'],
         """
             query {
                 compasDatasetModels {
@@ -1145,7 +1162,7 @@ def test_get_dataset_publication_model(setup_gwl_request, mock_publication_data)
     get_dataset(gwl, mock_request, mock_publication_data, publication, model)
 
     assert compare_graphql_query(
-        mock_request.mock_calls[0].args[0],
+        mock_request.mock_calls[0].kwargs['query'],
         """
             query {
                 compasDatasetModels (
