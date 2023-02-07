@@ -1,7 +1,6 @@
 import uuid
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from unittest.mock import call
 
 import pytest
 
