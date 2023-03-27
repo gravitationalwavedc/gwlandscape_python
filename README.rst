@@ -21,5 +21,5 @@ Example
 ::
 
     >>> from gwlandscape_python import GWLandscape
-    >>> gwc = GWLandscape(token='<user_api_token_here>')
+    >>> gwl = GWLandscape(token='<user_api_token_here>')
 
