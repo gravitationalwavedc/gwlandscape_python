@@ -31,10 +31,13 @@ Which returns a list of all available keywords:
 
 ::
 
+    >>> for keyword in keywords:
+    ...     print(keyword)
+    
     Keyword("Binary Neutron Star")
     Keyword("Common Envelope")
     Keyword("Gravitational Waves")
-    ...
+
 
 
 If we wish to obtain just a subset of this list, we can make use of the :code:`exact` or :code:`contains` arguments to match the whole or parts of the tag, or :code:`_id` to match the `id` of the keyword.
@@ -60,16 +63,19 @@ which returns a list of :class:`.Publication` objects:
 
 ::
 
+    >>> for publication in publications:
+    ...     print(publication)
+
     Publication("Common envelope episodes that lead to double neutron star formation")
     Publication("Formation of the first three gravitational wave observations through isolated binary evolution")
     Publication("On the formation history of galactic double neutron stars")
-    ...
 
 This method can also take :code:`author` and :code:`title` arguments to filter the returned list, or :code:`_id` to obtain a specific publication by ID.
 
 In the event that our publication does not already exist in the GWLandscape database, we can then use the :meth:`~.GWLandscape.create_publication` method to create it.
 At minimum, we'll need the author, title and arXiv ID of the publication, though it is good practice to assign keywords to the publication as well.
-We can obtain a list of appropriate keywords using  methods in the previous sections.
+We can obtain a list of appropriate keywords using methods in the previous sections.
+Alternatively, we can use a list of keyword strings, but if these keywords don't already exist in the system, the method will throw an error.
 
 ::
 
@@ -98,9 +104,11 @@ which returns a list of :class:`.Model` objects:
 
 ::
 
+    >>> for model in models:
+    ...     print(model)
+
     Model("Fiducial")
     Model("Optimistic CE")
-    ...
 
 This method takes :code:`name`, :code:`description` and :code:`summary` arguments to filter the list of models, or it can take :code:`_id` to obtain a specific Model by ID.
 If we're unable to find the Model to include in our dataset, we can create a new model in a similar fashion to Publications and Keywords.

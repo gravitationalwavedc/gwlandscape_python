@@ -79,7 +79,7 @@ class GWLandscape:
         Fetch all keywords matching exactly the provided parameter, any keywords with tags containing the term in
         the contains parameter, or the keyword with the specified id.
 
-        At most, only one of exact, contains, or _id must be provided. If neither the extract, contains, or _id
+        At most, only one of exact, contains, or _id must be provided. If neither the exact, contains, or _id
         parameter is supplied, then all keywords are returned.
 
         Parameters
@@ -181,7 +181,7 @@ class GWLandscape:
             download_link : (`str`)
                 A link to download the publication/dataset
             keywords : (`list`)
-                A list of :class:`~.Keyword` objects for the publication
+                A list of str or :class:`~.Keyword` objects for the publication
 
         Returns
         -------
@@ -196,6 +196,9 @@ class GWLandscape:
             }
         """
 
+        keywords = kwargs.pop('keywords', [])
+        assert isinstance(keywords, list), 'Keywords must be a list'
+
         params = {
             'input': {
                 'author': author,
@@ -206,8 +209,11 @@ class GWLandscape:
         }
 
         # Handle keywords
-        if 'keywords' in params['input']:
-            params['input']['keywords'] = [k.id for k in params['input']['keywords']]
+        if keywords:
+            params['input']['keywords'] = [
+                self.get_keywords(exact=keyword)[0].id if isinstance(keyword, str) else keyword.id
+                for keyword in keywords
+            ]
 
         result = self.request(mutation, params)
 

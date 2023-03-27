@@ -1,5 +1,5 @@
 Getting started with gwlandscape-python
-===================================
+=======================================
 
 Installation
 ------------
