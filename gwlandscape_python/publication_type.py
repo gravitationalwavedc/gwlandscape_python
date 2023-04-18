@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import inspect
 
 import gwlandscape_python
 
@@ -105,7 +104,7 @@ class Publication:
         if result['update_publication']['result']:
             for key, val in inputs.items():
                 setattr(self, key, val)
-            
+
             if keywords:
                 self.keywords = keywords
 

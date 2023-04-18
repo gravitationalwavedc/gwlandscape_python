@@ -1,17 +1,3 @@
-import uuid
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-from dataclasses import asdict
-
-import pytest
-
-from gwlandscape_python.dataset_type import Dataset
-from gwlandscape_python.keyword_type import Keyword
-from gwlandscape_python.model_type import Model
-from gwlandscape_python.keyword_type import Keyword
-from gwlandscape_python.tests.utils import compare_graphql_query
-
-
 def test_update_keyword(setup_gwl_request, create_keyword, mock_keyword_data):
     gwl, mock_request = setup_gwl_request
 
@@ -43,6 +29,7 @@ def test_update_keyword(setup_gwl_request, create_keyword, mock_keyword_data):
     )
 
     assert keyword.tag == updated_data['tag']
+
 
 def test_update_keyword_failure(setup_gwl_request, create_keyword, mock_keyword_data):
     gwl, mock_request = setup_gwl_request
@@ -76,6 +63,7 @@ def test_update_keyword_failure(setup_gwl_request, create_keyword, mock_keyword_
     )
 
     assert keyword.tag == original_data['tag']
+
 
 def test_delete_keyword(setup_gwl_request, create_keyword):
     gwl, mock_request = setup_gwl_request

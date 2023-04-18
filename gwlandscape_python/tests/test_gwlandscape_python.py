@@ -4,8 +4,6 @@ from tempfile import NamedTemporaryFile
 
 import pytest
 
-from gwlandscape_python import GWLandscape
-from gwlandscape_python.dataset_type import Dataset
 from gwlandscape_python.keyword_type import Keyword
 from gwlandscape_python.model_type import Model
 from gwlandscape_python.publication_type import Publication
@@ -445,6 +443,7 @@ def test_get_keyword_multi(setup_gwl_request):
             'id': None
         }
     )
+
 
 def test_create_publication(create_publication_request):
     gw, mock_request = create_publication_request

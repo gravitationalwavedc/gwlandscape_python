@@ -77,4 +77,3 @@ class Dataset:
         result = self.client.request(mutation, params)
 
         assert result['delete_compas_dataset_model']['result']
-

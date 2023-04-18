@@ -50,7 +50,6 @@ class Model:
             for key, val in inputs.items():
                 setattr(self, key, val)
 
-
     def delete(self):
         """
         Remove this Model from the GWLandscape database

@@ -1,16 +1,3 @@
-import uuid
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-from dataclasses import asdict
-
-import pytest
-
-from gwlandscape_python.dataset_type import Dataset
-from gwlandscape_python.model_type import Model
-from gwlandscape_python.publication_type import Publication
-from gwlandscape_python.tests.utils import compare_graphql_query
-
-
 def test_update_model(setup_gwl_request, create_model, mock_model_data):
     gwl, mock_request = setup_gwl_request
 
@@ -43,7 +30,7 @@ def test_update_model(setup_gwl_request, create_model, mock_model_data):
 
     for key, val in updated_data.items():
         assert getattr(model, key) == val
-    
+
 
 def test_update_model_failure(setup_gwl_request, create_model, mock_model_data):
     gwl, mock_request = setup_gwl_request
@@ -78,6 +65,7 @@ def test_update_model_failure(setup_gwl_request, create_model, mock_model_data):
 
     for key, val in initial_data.items():
         assert getattr(model, key) == val
+
 
 def test_delete_model(setup_gwl_request, create_model):
     gwl, mock_request = setup_gwl_request

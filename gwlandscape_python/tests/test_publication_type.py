@@ -1,14 +1,3 @@
-import uuid
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-from dataclasses import asdict
-
-import pytest
-
-from gwlandscape_python.dataset_type import Dataset
-from gwlandscape_python.keyword_type import Keyword
-from gwlandscape_python.model_type import Model
-from gwlandscape_python.publication_type import Publication
 from gwlandscape_python.tests.utils import compare_graphql_query
 
 
@@ -45,6 +34,7 @@ def test_update_publication_success(setup_gwl_request, create_publication, mock_
     for key, val in updated_data.items():
         assert getattr(publication, key) == val
 
+
 def test_update_publication_string_keywords(setup_gwl_request, create_publication, create_keyword):
     gwl, mock_request = setup_gwl_request
 
@@ -71,8 +61,8 @@ def test_update_publication_string_keywords(setup_gwl_request, create_publicatio
     ]
 
     publication = create_publication(gwl)
-    new_keywords = [create_keyword(gwl, i=i) for i in range(100,103)]
-    
+    new_keywords = [create_keyword(gwl, i=i) for i in range(100, 103)]
+
     publication.update(keywords=[keyword.tag for keyword in new_keywords])
 
     for i, j in enumerate(range(100, 103)):
@@ -115,6 +105,7 @@ def test_update_publication_string_keywords(setup_gwl_request, create_publicatio
             'keywords': [keyword.id for keyword in new_keywords]
         }
     }
+
 
 def test_update_publication_failure(setup_gwl_request, create_publication, mock_publication_data):
     gwl, mock_request = setup_gwl_request

@@ -43,7 +43,7 @@ class Keyword:
         }
 
         result = self.client.request(mutation, params)
-        
+
         if result['update_keyword']['result']:
             self.tag = tag if tag is not None else self.tag
 
