@@ -6,3 +6,6 @@ Once we have obtained an API token, we're able to begin using the GWLandscape Py
 .. toctree::
    authenticating
    gwlandscape
+   publications
+   models
+   datasets
