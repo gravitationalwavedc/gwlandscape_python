@@ -3,12 +3,9 @@ from pathlib import Path
 from gwdc_python import GWDC
 from gwdc_python.logger import create_logger
 
-from .dataset_type import Dataset
-from .keyword_type import Keyword
-from .model_type import Model
-from .publication_type import Publication
-from .utils import mutually_exclusive
-from .settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
+import gwlandscape_python
+from gwlandscape_python.utils import mutually_exclusive
+from gwlandscape_python.settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
 
 logger = create_logger(__name__)
 
@@ -118,37 +115,26 @@ class GWLandscape:
 
         result = self.request(query=query, variables=variables)
 
-        return [Keyword(**kw['node']) for kw in result['keywords']['edges']]
+        return [
+            gwlandscape_python.Keyword(client=self, **kw['node'])
+            for kw in result['keywords']['edges']
+        ]
 
-    def delete_keyword(self, keyword):
-        """
-        Delete a keyword represented by the provided keyword.
-
-        Parameters
-        ----------
-        keyword: Keyword
-            The Keyword instance to delete
-        """
-
-        mutation = """
-            mutation DeleteKeywordMutation($input: DeleteKeywordMutationInput!) {
-                deleteKeyword(input: $input) {
-                    result
-                }
-            }
-        """
-
-        params = {
-            'input': {
-                'id': keyword.id
-            }
-        }
-
-        result = self.request(mutation, params)
-
-        assert result['delete_keyword']['result']
-
-    def create_publication(self, author, title, arxiv_id, **kwargs):
+    def create_publication(
+        self,
+        author,
+        title,
+        arxiv_id,
+        published=None,
+        year=None,
+        journal=None,
+        journal_doi=None,
+        dataset_doi=None,
+        description=None,
+        public=None,
+        download_link=None,
+        keywords=None
+    ):
         """
         Creates a new keyword object with the specified tag.
 
@@ -160,28 +146,24 @@ class GWLandscape:
             The title of the publication
         arxiv_id : str
             The arxiv id of the publication
-        **kwargs : dict, optional
-            Extra keyword arguments that are provided to GWLandscape to create a publication.
-            Accepted keys are:
-
-            published: (`bool`)
-                If the publication was published in a journal/arXiv
-            year : (`int`)
-                The year of the publication
-            journal : (`str`)
-                The name of the journal
-            journal_doi : (`str`)
-                The DOI of the publication
-            dataset_doi : (`str`)
-                The DOI of the dataset
-            description : (`str`)
-                A description of the publication
-            public : (`bool`)
-                If the publication has been made public (visible to the public)
-            download_link : (`str`)
-                A link to download the publication/dataset
-            keywords : (`list`)
-                A list of str or :class:`~.Keyword` objects for the publication
+        published : bool, optional
+            If the publication was published in a journal/arXiv, by default None
+        year : int, optional
+            The year of the publication, by default None
+        journal : str, optional
+            The name of the journal, by default None
+        journal_doi : str, optional
+            The DOI of the publication, by default None
+        dataset_doi : str, optional
+            The DOI of the dataset, by default None
+        description : str, optional
+            A description of the publication, by default None
+        public : bool, optional
+            If the publication has been made public (visible to the public), by default None
+        download_link : str, optional
+            A link to download the publication/dataset, by default None
+        keywords : list, optional
+            A list of str or :class:`~.Keyword` objects for the publication, by default None
 
         Returns
         -------
@@ -196,20 +178,24 @@ class GWLandscape:
             }
         """
 
-        keywords = kwargs.pop('keywords', [])
-        assert isinstance(keywords, list), 'Keywords must be a list'
-
         params = {
             'input': {
                 'author': author,
                 'title': title,
                 'arxiv_id': arxiv_id,
-                **kwargs
+                'published': published,
+                'year': year,
+                'journal': journal,
+                'journal_doi': journal_doi,
+                'dataset_doi': dataset_doi,
+                'description': description,
+                'public': public,
+                'download_link': download_link
             }
         }
 
         # Handle keywords
-        if keywords:
+        if isinstance(keywords, list):
             params['input']['keywords'] = [
                 self.get_keywords(exact=keyword)[0].id if isinstance(keyword, str) else keyword.id
                 for keyword in keywords
@@ -291,37 +277,14 @@ class GWLandscape:
 
         # Handle keywords
         for pub in result['compas_publications']['edges']:
-            pub['node']['keywords'] = [Keyword(**kw['node']) for kw in pub['node']['keywords']['edges']]
+            pub['node']['keywords'] = [
+                gwlandscape_python.Keyword(client=self, **kw['node']) for kw in pub['node']['keywords']['edges']
+            ]
 
-        return [Publication(**kw['node']) for kw in result['compas_publications']['edges']]
-
-    def delete_publication(self, publication):
-        """
-        Delete a publication represented by the provided publication instance.
-
-        Parameters
-        ----------
-        publication: Publication
-            The Publication instance to delete
-        """
-
-        mutation = """
-            mutation DeletePublicationMutation($input: DeletePublicationMutationInput!) {
-                deletePublication(input: $input) {
-                    result
-                }
-            }
-        """
-
-        params = {
-            'input': {
-                'id': publication.id
-            }
-        }
-
-        result = self.request(mutation, params)
-
-        assert result['delete_publication']['result']
+        return [
+            gwlandscape_python.Publication(client=self, **kw['node'])
+            for kw in result['compas_publications']['edges']
+        ]
 
     def create_model(self, name, summary=None, description=None):
         """
@@ -418,35 +381,10 @@ class GWLandscape:
 
         result = self.request(query=query, variables=variables)
 
-        return [Model(**kw['node']) for kw in result['compas_models']['edges']]
-
-    def delete_model(self, model):
-        """
-        Delete a model represented by the provided model.
-
-        Parameters
-        ----------
-        model: Model
-            The Model instance to delete
-        """
-
-        mutation = """
-            mutation DeleteCompasModelMutation($input: DeleteCompasModelMutationInput!) {
-                deleteCompasModel(input: $input) {
-                    result
-                }
-            }
-        """
-
-        params = {
-            'input': {
-                'id': model.id
-            }
-        }
-
-        result = self.request(mutation, params)
-
-        assert result['delete_compas_model']['result']
+        return [
+            gwlandscape_python.Model(client=self, **kw['node'])
+            for kw in result['compas_models']['edges']
+        ]
 
     def create_dataset(self, publication, model, datafile):
         """
@@ -567,45 +505,25 @@ class GWLandscape:
         # Handle publication and model objects
         for dataset in result['compas_dataset_models']['edges']:
             # Handle publication keywords
-            dataset['node']['compas_publication']['keywords'] = \
-                [Keyword(**kw['node']) for kw in dataset['node']['compas_publication']['keywords']['edges']]
+            dataset['node']['compas_publication']['keywords'] = [
+                gwlandscape_python.Keyword(client=self, **kw['node'])
+                for kw in dataset['node']['compas_publication']['keywords']['edges']
+            ]
 
-            dataset['node']['publication'] = Publication(**dataset['node']['compas_publication'])
-            dataset['node']['model'] = Model(**dataset['node']['compas_model'])
+            dataset['node']['publication'] = gwlandscape_python.Publication(
+                client=self,
+                **dataset['node']['compas_publication']
+            )
+            dataset['node']['model'] = gwlandscape_python.Model(client=self, **dataset['node']['compas_model'])
 
             # Delete the compas_ fields - we don't need them anymore
             del dataset['node']['compas_publication']
             del dataset['node']['compas_model']
 
-        return [Dataset(**kw['node']) for kw in result['compas_dataset_models']['edges']]
-
-    def delete_dataset(self, dataset):
-        """
-        Delete a dataset represented by the provided dataset.
-
-        Parameters
-        ----------
-        dataset: Dataset
-            The Dataset instance to delete
-        """
-
-        mutation = """
-            mutation DeleteCompasDatasetModelMutation($input: DeleteCompasDatasetModelMutationInput!) {
-                deleteCompasDatasetModel(input: $input) {
-                    result
-                }
-            }
-        """
-
-        params = {
-            'input': {
-                'id': dataset.id
-            }
-        }
-
-        result = self.request(mutation, params)
-
-        assert result['delete_compas_dataset_model']['result']
+        return [
+            gwlandscape_python.dataset_type.Dataset(client=self, **kw['node'])
+            for kw in result['compas_dataset_models']['edges']
+        ]
 
     def _generate_compas_dataset_model_upload_token(self):
         """Creates a new long lived upload token for use uploading compas publications

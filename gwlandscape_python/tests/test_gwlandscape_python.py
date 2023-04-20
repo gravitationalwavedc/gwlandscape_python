@@ -4,24 +4,10 @@ from tempfile import NamedTemporaryFile
 
 import pytest
 
-from gwlandscape_python import GWLandscape
-from gwlandscape_python.dataset_type import Dataset
 from gwlandscape_python.keyword_type import Keyword
 from gwlandscape_python.model_type import Model
 from gwlandscape_python.publication_type import Publication
 from gwlandscape_python.tests.utils import compare_graphql_query
-
-
-@pytest.fixture
-def setup_gwl_request(mocker):
-    def mock_init(self, token, auth_endpoint, endpoint):
-        pass
-
-    mock_request = mocker.Mock()
-    mocker.patch('gwlandscape_python.gwlandscape.GWDC.__init__', mock_init)
-    mocker.patch('gwlandscape_python.gwlandscape.GWDC.request', mock_request)
-
-    return GWLandscape(token='my_token'), mock_request
 
 
 @pytest.fixture
@@ -459,41 +445,12 @@ def test_get_keyword_multi(setup_gwl_request):
     )
 
 
-def test_delete_keyword(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    mock_request.return_value = {
-        "delete_keyword": {
-            "result": True
-        }
-    }
-
-    keyword = Keyword(**{'tag': 'my_tag', 'id': 'S2V5d29yZE5vZGU6MzA='})
-
-    gwl.delete_keyword(keyword)
-
-    mock_request.assert_called_with(
-        """
-            mutation DeleteKeywordMutation($input: DeleteKeywordMutationInput!) {
-                deleteKeyword(input: $input) {
-                    result
-                }
-            }
-        """,
-        {
-            'input': {
-                'id': keyword.id
-            }
-        }
-    )
-
-
 def test_create_publication(create_publication_request):
     gw, mock_request = create_publication_request
 
     kws = [
-        Keyword('kw_id_1', 'keyword1'),
-        Keyword('kw_id_2', 'keyword2'),
+        Keyword(gw, 'kw_id_1', 'keyword1'),
+        Keyword(gw, 'kw_id_2', 'keyword2'),
     ]
 
     publication = gw.create_publication(
@@ -646,8 +603,8 @@ def get_publication(gwl, mock_request, **kwargs):
     publication = pub[0]
 
     kws = [
-        Keyword('kw_id_1', 'keyword1'),
-        Keyword('kw_id_2', 'keyword2'),
+        Keyword(gwl, 'kw_id_1', 'keyword1'),
+        Keyword(gwl, 'kw_id_2', 'keyword2'),
     ]
 
     assert publication.id == 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw'
@@ -819,50 +776,6 @@ def test_get_publication_author_title_id(setup_gwl_request):
         get_publication(gwl, mock_request, author='test_author', title='test_title', _id='not_gonna_work')
 
 
-def test_delete_publication(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    mock_request.return_value = {
-        "delete_publication": {
-            "result": True
-        }
-    }
-
-    publication = Publication(**{
-        'id': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw',
-        'author': 'my author',
-        'published': True,
-        'title': 'my publication',
-        'year': 1234,
-        'journal': 'journal',
-        'journal_doi': 'journal doi',
-        'dataset_doi': 'dataset doi',
-        'creation_time': '2022-06-20T02:12:59.459297+00:00',
-        'description': 'my description',
-        'public': True,
-        'download_link': 'my download link',
-        'arxiv_id': 'an arxiv id',
-        'keywords': []
-    })
-
-    gwl.delete_publication(publication)
-
-    mock_request.assert_called_with(
-        """
-            mutation DeletePublicationMutation($input: DeletePublicationMutationInput!) {
-                deletePublication(input: $input) {
-                    result
-                }
-            }
-        """,
-        {
-            'input': {
-                'id': publication.id
-            }
-        }
-    )
-
-
 def test_create_model(create_model_request):
     gw, mock_request = create_model_request
 
@@ -1032,48 +945,12 @@ def test_get_model_name_summary_description_id(setup_gwl_request):
         )
 
 
-def test_delete_model(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    mock_request.return_value = {
-        "delete_compas_model": {
-            "result": True
-        }
-    }
-
-    model = Model(
-        **{
-            'name': 'my_name',
-            'summary': 'my_summary',
-            'description': 'my_description',
-            'id': 'Q29tcGFzTW9kZWxOb2RlOjI='
-        }
-    )
-
-    gwl.delete_model(model)
-
-    mock_request.assert_called_with(
-        """
-            mutation DeleteCompasModelMutation($input: DeleteCompasModelMutationInput!) {
-                deleteCompasModel(input: $input) {
-                    result
-                }
-            }
-        """,
-        {
-            'input': {
-                'id': model.id
-            }
-        }
-    )
-
-
 def test_create_dataset(create_dataset_request, mock_publication_data):
     gw, mock_request = create_dataset_request
     publication_data, model_data = mock_publication_data
 
-    publication = Publication(**publication_data)
-    model = Model(**model_data)
+    publication = Publication(gw, **publication_data)
+    model = Model(gw, **model_data)
 
     with NamedTemporaryFile() as tf:
         dataset = gw.create_dataset(publication, model, Path(tf.name))
@@ -1253,8 +1130,8 @@ def test_get_dataset_publication_model(setup_gwl_request, mock_publication_data)
     gwl, mock_request = setup_gwl_request
     publication_data, model_data = mock_publication_data
 
-    publication = Publication(**publication_data)
-    model = Model(**model_data)
+    publication = Publication(gwl, **publication_data)
+    model = Model(gwl, **model_data)
 
     get_dataset(gwl, mock_request, mock_publication_data, publication=publication, model=model)
 
@@ -1312,8 +1189,8 @@ def test_get_dataset_publication_model_id(setup_gwl_request, mock_publication_da
     gwl, mock_request = setup_gwl_request
     publication_data, model_data = mock_publication_data
 
-    publication = Publication(**publication_data)
-    model = Model(**model_data)
+    publication = Publication(gwl, **publication_data)
+    model = Model(gwl, **model_data)
 
     with pytest.raises(SyntaxError):
         get_dataset(
@@ -1324,41 +1201,3 @@ def test_get_dataset_publication_model_id(setup_gwl_request, mock_publication_da
             model=model,
             _id='not_gonna_work'
         )
-
-
-def test_delete_dataset(setup_gwl_request, mock_publication_data):
-    gwl, mock_request = setup_gwl_request
-    publication_data, model_data = mock_publication_data
-
-    mock_request.return_value = {
-        "delete_compas_dataset_model": {
-            "result": True
-        }
-    }
-
-    publication = Publication(**publication_data)
-    model = Model(**model_data)
-
-    dataset = Dataset(**{
-        'id': 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=',
-        'publication': publication,
-        'model': model,
-        'files': ['my_file.h5']
-    })
-
-    gwl.delete_dataset(dataset)
-
-    mock_request.assert_called_with(
-        """
-            mutation DeleteCompasDatasetModelMutation($input: DeleteCompasDatasetModelMutationInput!) {
-                deleteCompasDatasetModel(input: $input) {
-                    result
-                }
-            }
-        """,
-        {
-            'input': {
-                'id': dataset.id
-            }
-        }
-    )
