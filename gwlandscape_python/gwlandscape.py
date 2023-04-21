@@ -170,6 +170,8 @@ class GWLandscape:
         Publication
             Created Publication
         """
+        inputs = {key: val for key, val in locals().items() if ((val is not None) and (key != 'self'))}
+
         mutation = """
             mutation AddPublicationMutation($input: AddPublicationMutationInput!) {
                 addPublication(input: $input) {
@@ -178,28 +180,19 @@ class GWLandscape:
             }
         """
 
-        params = {
-            'input': {
-                'author': author,
-                'title': title,
-                'arxiv_id': arxiv_id,
-                'published': published,
-                'year': year,
-                'journal': journal,
-                'journal_doi': journal_doi,
-                'dataset_doi': dataset_doi,
-                'description': description,
-                'public': public,
-                'download_link': download_link
-            }
-        }
-
         # Handle keywords
         if isinstance(keywords, list):
-            params['input']['keywords'] = [
+            inputs['keywords'] = [
                 self.get_keywords(exact=keyword)[0].id if isinstance(keyword, str) else keyword.id
                 for keyword in keywords
             ]
+            inputs['keywords'] = [keyword.id for keyword in keywords]
+
+        params = {
+            'input': {
+                **inputs
+            }
+        }
 
         result = self.request(mutation, params)
 
@@ -304,6 +297,8 @@ class GWLandscape:
         Model
             Created Model
         """
+        inputs = {key: val for key, val in locals().items() if ((val is not None) and (key != 'self'))}
+
         mutation = """
             mutation AddCompasModelMutation($input: AddCompasModelMutationInput!) {
                 addCompasModel(input: $input) {
@@ -314,9 +309,7 @@ class GWLandscape:
 
         params = {
             'input': {
-                'name': name,
-                'summary': summary,
-                'description': description
+                **inputs
             }
         }
 
