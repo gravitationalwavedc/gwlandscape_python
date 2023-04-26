@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import gwlandscape_python
 from gwlandscape_python.model_type import Model
@@ -7,7 +7,7 @@ from gwlandscape_python.publication_type import Publication
 
 @dataclass
 class Dataset:
-    client: gwlandscape_python.gwlandscape.GWLandscape
+    client: gwlandscape_python.gwlandscape.GWLandscape = field(compare=False)
     id: str
     publication: Publication
     model: Model

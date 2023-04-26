@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import gwlandscape_python
 
 
 @dataclass
 class Model:
-    client: gwlandscape_python.gwlandscape.GWLandscape
+    client: gwlandscape_python.gwlandscape.GWLandscape = field(compare=False)
     id: str
     name: str
     summary: str
