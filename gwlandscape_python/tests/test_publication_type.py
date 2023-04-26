@@ -35,24 +35,16 @@ def test_update_publication_success(setup_gwl_request, create_publication, mock_
         assert getattr(publication, key) == val
 
 
-def test_update_publication_string_keywords(setup_gwl_request, create_publication, create_keyword):
+def test_update_publication_string_keywords(
+    setup_gwl_request,
+    create_publication,
+    create_keyword,
+    query_keyword_return
+):
     gwl, mock_request = setup_gwl_request
 
     mock_request.side_effect = [
-        *[
-            {
-                "keywords": {
-                    "edges": [
-                        {
-                            "node": {
-                                "id": f"mock_id{i}",
-                                "tag": f"mock_tag{i}"
-                            }
-                        }
-                    ]
-                }
-            } for i in range(100, 103)
-        ],
+        *[query_keyword_return(1, start_id=i) for i in range(100, 103)],
         {
             "update_publication": {
                 "result": True

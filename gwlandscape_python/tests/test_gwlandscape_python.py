@@ -4,32 +4,18 @@ from tempfile import NamedTemporaryFile
 
 import pytest
 
-from gwlandscape_python.keyword_type import Keyword
-from gwlandscape_python.model_type import Model
-from gwlandscape_python.publication_type import Publication
 from gwlandscape_python.tests.utils import compare_graphql_query
 
 
 @pytest.fixture
-def create_keyword_request(setup_gwl_request):
+def create_keyword_request(setup_gwl_request, query_keyword_return):
     response_data = [
         {
             "add_keyword": {
-                "id": "S2V5d29yZE5vZGU6MzA="
+                "id": "mock_keyword_id1"
             }
         },
-        {
-            "keywords": {
-                "edges": [
-                    {
-                        "node": {
-                            "id": "S2V5d29yZE5vZGU6MzA=",
-                            "tag": "my_tag"
-                        }
-                    }
-                ]
-            }
-        }
+        query_keyword_return(n_keywords=1)
     ]
 
     gwl, mr = setup_gwl_request
@@ -43,86 +29,90 @@ def create_keyword_request(setup_gwl_request):
 
 
 @pytest.fixture
-def create_publication_request(setup_gwl_request):
+def get_keywords_query():
+    return """
+        query ($exact: String, $contains: String, $id: ID) {
+            keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
+                edges {
+                    node {
+                        id
+                        tag
+                    }
+                }
+            }
+        }
+    """
+
+
+@pytest.fixture
+def create_publication_request(setup_gwl_request, query_publication_return):
     response_data = [
         {
             "add_publication": {
-                "id": "Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw"
+                "id": "mock_publication_id1"
             }
         },
-        {
-            'compas_publications': {
-                'edges': [
-                    {
-                        'node': {
-                            'id': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw',
-                            'author': 'my author',
-                            'published': True,
-                            'title': 'my publication',
-                            'year': 1234,
-                            'journal': 'journal',
-                            'journal_doi': 'journal doi',
-                            'dataset_doi': 'dataset doi',
-                            'creation_time': '2022-06-20T02:12:59.459297+00:00',
-                            'description': 'my description',
-                            'public': True,
-                            'download_link': 'my download link',
-                            'arxiv_id': 'an arxiv id',
-                            'keywords': {
-                                'edges': [
-                                    {
-                                        'node': {
-                                            'id': 'kw_id_1',
-                                            'tag': 'keyword1'
-                                        }
-                                    },
-                                    {
-                                        'node': {
-                                            'id': 'kw_id_2',
-                                            'tag': 'keyword2'
-                                        }
-                                    }
-                                ]
+        query_publication_return(n_publications=1)
+    ]
+
+    gwl, mr = setup_gwl_request
+
+    def mock_request(*args, **kwargs):
+        return response_data.pop(0)
+
+    mr.side_effect = mock_request
+
+    return gwl, mr
+
+
+@pytest.fixture
+def get_publications_query():
+    return """
+        query ($author: String, $title: String, $id: ID) {
+            compasPublications (
+                author_Icontains: $author,
+                title_Icontains: $title,
+                id: $id
+            ) {
+                edges {
+                    node {
+                        id
+                        author
+                        published
+                        title
+                        year
+                        journal
+                        journalDoi
+                        datasetDoi
+                        creationTime
+                        description
+                        public
+                        downloadLink
+                        arxivId
+                        keywords {
+                            edges {
+                                node {
+                                    id
+                                    tag
+                                }
                             }
                         }
                     }
-                ]
+                }
             }
         }
-    ]
-
-    gwl, mr = setup_gwl_request
-
-    def mock_request(*args, **kwargs):
-        return response_data.pop(0)
-
-    mr.side_effect = mock_request
-
-    return gwl, mr
+    """
 
 
 @pytest.fixture
-def create_model_request(setup_gwl_request):
+def create_model_request(setup_gwl_request, query_model_return):
     response_data = [
         {
             "add_compas_model": {
-                "id": "Q29tcGFzTW9kZWxOb2RlOjI="
+                "id": "mock_model_id1"
             }
         },
-        {
-            "compas_models": {
-                "edges": [
-                    {
-                        "node": {
-                            "id": "Q29tcGFzTW9kZWxOb2RlOjI=",
-                            "name": "my_name",
-                            "summary": "my_summary",
-                            "description": "my_description"
-                        }
-                    }
-                ]
-            }
-        }
+        query_model_return(n_models=1)
     ]
 
     gwl, mr = setup_gwl_request
@@ -136,43 +126,31 @@ def create_model_request(setup_gwl_request):
 
 
 @pytest.fixture
-def mock_publication_data():
-    publication_data = {
-        'id': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw',
-        'author': 'my author',
-        'published': True,
-        'title': 'my publication',
-        'year': 1234,
-        'journal': 'journal',
-        'journal_doi': 'journal doi',
-        'dataset_doi': 'dataset doi',
-        'creation_time': '2022-06-20T02:12:59.459297+00:00',
-        'description': 'my description',
-        'public': True,
-        'download_link': 'my download link',
-        'arxiv_id': 'an arxiv id',
-        'keywords': []
-    }
-
-    model_data = {
-        'name': 'my_name',
-        'summary': 'my_summary',
-        'description': 'my_description',
-        'id': 'Q29tcGFzTW9kZWxOb2RlOjI='
-    }
-
-    return publication_data, model_data
+def get_models_query():
+    return """
+        query ($name: String, $summary: String, $description: String, $id: ID) {
+            compasModels (
+                name_Icontains: $name,
+                summary_Icontains: $summary,
+                description_Icontains: $description,
+                id: $id
+            ) {
+                edges {
+                    node {
+                        id
+                        name
+                        summary
+                        description
+                    }
+                }
+            }
+        }
+    """
 
 
 @pytest.fixture
-def create_dataset_request(setup_gwl_request, mock_publication_data):
-    publication_data, model_data = mock_publication_data
-
-    publication_data = publication_data.copy()
-    publication_data['keywords'] = {
-        'edges': []
-    }
-
+def create_dataset_request(setup_gwl_request, query_dataset_return):
+    print(query_dataset_return(n_datasets=1))
     response_data = [
         {
             "generate_compas_dataset_model_upload_token": {
@@ -181,25 +159,10 @@ def create_dataset_request(setup_gwl_request, mock_publication_data):
         },
         {
             "upload_compas_dataset_model": {
-                "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3="
+                "id": "mock_dataset_id1"
             }
         },
-        {
-            "compas_dataset_models": {
-                "edges": [
-                    {
-                        "node": {
-                            "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=",
-                            "files": [
-                                'test_file.h5'
-                            ],
-                            'compas_model': model_data,
-                            'compas_publication': publication_data
-                        }
-                    }
-                ]
-            }
-        }
+        query_dataset_return(n_datasets=1)
     ]
 
     gwl, mr = setup_gwl_request
@@ -212,13 +175,61 @@ def create_dataset_request(setup_gwl_request, mock_publication_data):
     return gwl, mr
 
 
-def test_create_keyword(create_keyword_request):
-    gw, mock_request = create_keyword_request
+@pytest.fixture
+def get_datasets_query():
+    return """
+        query ($publication: ID, $model: ID, $id: ID) {
+            compasDatasetModels (compasPublication: $publication, compasModel: $model, id: $id) {
+                edges {
+                    node {
+                        id
+                        files
+                        compasPublication {
+                            id
+                            author
+                            published
+                            title
+                            year
+                            journal
+                            journalDoi
+                            datasetDoi
+                            creationTime
+                            description
+                            public
+                            downloadLink
+                            arxivId
+                            keywords {
+                                edges {
+                                    node {
+                                        id
+                                        tag
+                                    }
+                                }
+                            }
+                        }
+                        compasModel {
+                            id
+                            name
+                            summary
+                            description
+                        }
+                    }
+                }
+            }
+        }
+    """
 
-    keyword = gw.create_keyword('my_tag')
 
-    assert keyword.id == 'S2V5d29yZE5vZGU6MzA='
-    assert keyword.tag == 'my_tag'
+def test_create_keyword(create_keyword_request, mock_keyword_data, get_keywords_query):
+    gwl, mock_request = create_keyword_request
+
+    keyword_data = mock_keyword_data(i=1)
+    keyword_id = 'mock_keyword_id1'
+
+    keyword = gwl.create_keyword(**keyword_data)
+
+    assert keyword.id == keyword_id
+    assert keyword.tag == keyword_data['tag']
 
     assert compare_graphql_query(
         mock_request.mock_calls[0].args[0],
@@ -231,256 +242,106 @@ def test_create_keyword(create_keyword_request):
         """
     )
 
-    assert mock_request.mock_calls[0].args[1] == {
-        'input': {
-            'tag': 'my_tag'
-        }
-    }
+    assert mock_request.mock_calls[0].args[1] == {'input': keyword_data}
+
     assert compare_graphql_query(
         mock_request.mock_calls[1].kwargs['query'],
-        """
-            query ($exact: String, $contains: String, $id: ID) {
-                keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
-                    edges {
-                        node {
-                            id
-                            tag
-                        }
-                    }
-                }
-            }
-        """
+        get_keywords_query
     )
 
     assert mock_request.mock_calls[1].kwargs['variables'] == {
         'exact': None,
         'contains': None,
-        'id': 'S2V5d29yZE5vZGU6MzA='
+        'id': keyword_id
     }
 
 
-def test_get_keyword_exact(setup_gwl_request):
+@pytest.mark.parametrize('exact', [True, False])
+@pytest.mark.parametrize('contains', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_keyword_exact(
+    setup_gwl_request,
+    query_keyword_return,
+    mock_keyword_data,
+    get_keywords_query,
+    exact,
+    contains,
+    _id
+):
     gwl, mock_request = setup_gwl_request
 
-    mock_request.return_value = {
-        "keywords": {
-            "edges": [
-                {
-                    "node": {
-                        "id": "S2V5d29yZE5vZGU6MzA=",
-                        "tag": "my_tag"
-                    }
-                }
-            ]
-        }
-    }
+    keyword_data = mock_keyword_data(i=1)
+    keyword_id = 'mock_keyword_id1'
 
-    kws = gwl.get_keywords(exact="my_tag")
+    input_pairs = [('exact', exact), ('contains', contains)]
+    inputs = {key: keyword_data['tag'] for key, val in input_pairs if val}
+    if _id:
+        inputs['_id'] = keyword_id
+
+    if len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_keywords(**inputs)
+        return
+
+    mock_request.return_value = query_keyword_return(n_keywords=1)
+
+    kws = gwl.get_keywords(**inputs)
     assert len(kws) == 1
 
     keyword = kws[0]
-    assert keyword.id == 'S2V5d29yZE5vZGU6MzA='
-    assert keyword.tag == 'my_tag'
+    assert keyword.id == keyword_id
+    assert keyword.tag == keyword_data['tag']
 
-    mock_request.assert_called_with(
-        query="""
-            query ($exact: String, $contains: String, $id: ID) {
-                keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
-                    edges {
-                        node {
-                            id
-                            tag
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'exact': 'my_tag',
-            'contains': None,
-            'id': None
-        }
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].kwargs['query'],
+        get_keywords_query
     )
 
-
-def test_get_keyword_contains(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    mock_request.return_value = {
-        "keywords": {
-            "edges": [
-                {
-                    "node": {
-                        "id": "S2V5d29yZE5vZGU6MzA=",
-                        "tag": "my_tag"
-                    }
-                }
-            ]
-        }
+    assert mock_request.mock_calls[0].kwargs['variables'] == {
+        'exact': None,
+        'contains': None,
+        'id': inputs.pop('_id', None),
+        **inputs
     }
 
-    kws = gwl.get_keywords(contains="tag")
-    assert len(kws) == 1
 
-    keyword = kws[0]
-    assert keyword.id == 'S2V5d29yZE5vZGU6MzA='
-    assert keyword.tag == 'my_tag'
-
-    mock_request.assert_called_with(
-        query="""
-            query ($exact: String, $contains: String, $id: ID) {
-                keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
-                    edges {
-                        node {
-                            id
-                            tag
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'exact': None,
-            'contains': 'tag',
-            'id': None
-        }
-    )
-
-
-def test_get_keyword_id(setup_gwl_request):
+def test_get_keyword_multi(setup_gwl_request, query_keyword_return, mock_keyword_data, get_keywords_query):
     gwl, mock_request = setup_gwl_request
 
-    mock_request.return_value = {
-        "keywords": {
-            "edges": [
-                {
-                    "node": {
-                        "id": "S2V5d29yZE5vZGU6MzA=",
-                        "tag": "my_tag"
-                    }
-                }
-            ]
-        }
-    }
+    keywords_data = [mock_keyword_data(i+1) for i in range(2)]
 
-    kws = gwl.get_keywords(_id='S2V5d29yZE5vZGU6MzA=')
-    assert len(kws) == 1
-
-    keyword = kws[0]
-    assert keyword.id == 'S2V5d29yZE5vZGU6MzA='
-    assert keyword.tag == 'my_tag'
-
-    mock_request.assert_called_with(
-        query="""
-            query ($exact: String, $contains: String, $id: ID) {
-                keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
-                    edges {
-                        node {
-                            id
-                            tag
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'exact': None,
-            'contains': None,
-            'id': 'S2V5d29yZE5vZGU6MzA='
-        }
-    )
-
-
-def test_get_keyword_multi(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    mock_request.return_value = {
-        "keywords": {
-            "edges": [
-                {
-                    "node": {
-                        "id": "S2V5d29yZE5vZGU6MzA=",
-                        "tag": "my_tag"
-                    }
-                },
-                {
-                    "node": {
-                        "id": "S2V5d29yZE5vZGU6MzB=",
-                        "tag": "my_tag2"
-                    }
-                }
-            ]
-        }
-    }
+    mock_request.return_value = query_keyword_return(n_keywords=2)
 
     kws = gwl.get_keywords()
     assert len(kws) == 2
 
-    keyword = kws[0]
-    assert keyword.id == 'S2V5d29yZE5vZGU6MzA='
-    assert keyword.tag == 'my_tag'
+    for i, keyword_data in enumerate(keywords_data):
+        assert kws[i].id == f'mock_keyword_id{i+1}'
+        assert kws[i].tag == keyword_data['tag']
 
-    keyword = kws[1]
-    assert keyword.id == 'S2V5d29yZE5vZGU6MzB='
-    assert keyword.tag == 'my_tag2'
-
-    mock_request.assert_called_with(
-        query="""
-            query ($exact: String, $contains: String, $id: ID) {
-                keywords (tag: $exact, tag_Icontains: $contains, id: $id) {
-                    edges {
-                        node {
-                            id
-                            tag
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'exact': None,
-            'contains': None,
-            'id': None
-        }
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].kwargs['query'],
+        get_keywords_query
     )
 
+    assert mock_request.mock_calls[0].kwargs['variables'] == {
+        'exact': None,
+        'contains': None,
+        'id': None
+    }
 
-def test_create_publication(create_publication_request):
-    gw, mock_request = create_publication_request
 
-    kws = [
-        Keyword(gw, 'kw_id_1', 'keyword1'),
-        Keyword(gw, 'kw_id_2', 'keyword2'),
-    ]
+def test_create_publication(create_publication_request, mock_publication_data, get_publications_query):
+    gwl, mock_request = create_publication_request
 
-    publication = gw.create_publication(
-        'my author',
-        'my publication',
-        'an arxiv id',
-        published=True,
-        year=1234,
-        journal="journal",
-        journal_doi="journal doi",
-        dataset_doi="dataset doi",
-        description='my description',
-        public=True,
-        download_link='my download link',
-        keywords=kws
-    )
+    publication_data = mock_publication_data(i=1, n_keywords=2)
+    publication_id = 'mock_publication_id1'
 
-    assert publication.id == 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw'
-    assert publication.author == 'my author'
-    assert publication.title == 'my publication'
-    assert publication.arxiv_id == 'an arxiv id'
-    assert publication.published is True
-    assert publication.year == 1234
-    assert publication.journal == "journal"
-    assert publication.journal_doi == "journal doi"
-    assert publication.dataset_doi == "dataset doi"
-    assert publication.description == 'my description'
-    assert publication.public is True
-    assert publication.download_link == 'my download link'
-    assert publication.keywords == kws
+    publication = gwl.create_publication(**publication_data)
+
+    assert publication.id == publication_id
+    for key, val in publication_data.items():
+        assert getattr(publication, key) == val
 
     assert compare_graphql_query(
         mock_request.mock_calls[0].args[0],
@@ -493,298 +354,83 @@ def test_create_publication(create_publication_request):
         """
     )
 
-    assert mock_request.mock_calls[0].args[1] == {
-        'input': {
-            'author': 'my author',
-            'title': 'my publication',
-            'arxiv_id': 'an arxiv id',
-            'published': True,
-            'year': 1234,
-            'journal': "journal",
-            'journal_doi': "journal doi",
-            'dataset_doi': "dataset doi",
-            'description': 'my description',
-            'public': True,
-            'download_link': 'my download link',
-            'keywords': ['kw_id_1', 'kw_id_2']
-        }
-    }
+    publication_data['keywords'] = [keyword.id for keyword in publication_data['keywords']]
+    assert mock_request.mock_calls[0].args[1] == {'input': publication_data}
 
     assert compare_graphql_query(
         mock_request.mock_calls[1].kwargs['query'],
-        """
-            query ($author: String, $title: String, $id: ID) {
-                compasPublications (
-                    author_Icontains: $author,
-                    title_Icontains: $title,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            author
-                            published
-                            title
-                            year
-                            journal
-                            journalDoi
-                            datasetDoi
-                            creationTime
-                            description
-                            public
-                            downloadLink
-                            arxivId
-                            keywords {
-                                edges {
-                                    node {
-                                        id
-                                        tag
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        """
+        get_publications_query
     )
 
     assert mock_request.mock_calls[1].kwargs['variables'] == {
         'author': None,
         'title': None,
-        'id': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw'
+        'id': publication_id
     }
 
 
-def get_publication(gwl, mock_request, **kwargs):
-    mock_request.return_value = {
-        'compas_publications': {
-            'edges': [
-                {
-                    'node': {
-                        'id': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw',
-                        'author': 'my author',
-                        'published': True,
-                        'title': 'my publication',
-                        'year': 1234,
-                        'journal': 'journal',
-                        'journal_doi': 'journal doi',
-                        'dataset_doi': 'dataset doi',
-                        'creation_time': '2022-06-20T02:12:59.459297+00:00',
-                        'description': 'my description',
-                        'public': True,
-                        'download_link': 'my download link',
-                        'arxiv_id': 'an arxiv id',
-                        'keywords': {
-                            'edges': [
-                                {
-                                    'node': {
-                                        'id': 'kw_id_1',
-                                        'tag': 'keyword1'
-                                    }
-                                },
-                                {
-                                    'node': {
-                                        'id': 'kw_id_2',
-                                        'tag': 'keyword2'
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            ]
-        }
+@pytest.mark.parametrize('author', [True, False])
+@pytest.mark.parametrize('title', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_publication_author_title(
+    setup_gwl_request,
+    query_publication_return,
+    mock_publication_data,
+    get_publications_query,
+    author,
+    title,
+    _id
+):
+    gwl, mock_request = setup_gwl_request
+
+    publication_data = mock_publication_data(1, n_keywords=2)
+    publication_data['_id'] = 'mock_publication_id1'
+
+    input_pairs = [('author', author), ('title', title), ('_id', _id)]
+    inputs = {key: publication_data[key] for key, val in input_pairs if val}
+
+    publication_id = publication_data.pop('_id')
+
+    if _id and len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_publications(**inputs)
+        return
+
+    mock_request.return_value = query_publication_return(n_publications=1)
+
+    publications = gwl.get_publications(**inputs)
+    assert len(publications) == 1
+
+    publication = publications[0]
+
+    assert publication.id == publication_id
+    for key, val in publication_data.items():
+        assert getattr(publication, key) == val
+
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].kwargs['query'],
+        get_publications_query
+    )
+
+    assert mock_request.mock_calls[0].kwargs['variables'] == {
+        'author': None,
+        'title': None,
+        'id': inputs.pop('_id', None),
+        **inputs
     }
 
-    pub = gwl.get_publications(**kwargs)
-    assert len(pub) == 1
 
-    publication = pub[0]
+def test_create_model(create_model_request, mock_model_data, get_models_query):
+    gwl, mock_request = create_model_request
 
-    kws = [
-        Keyword(gwl, 'kw_id_1', 'keyword1'),
-        Keyword(gwl, 'kw_id_2', 'keyword2'),
-    ]
+    model_data = mock_model_data(i=1)
+    model_id = 'mock_model_id1'
 
-    assert publication.id == 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw'
-    assert publication.author == 'my author'
-    assert publication.title == 'my publication'
-    assert publication.arxiv_id == 'an arxiv id'
-    assert publication.published is True
-    assert publication.year == 1234
-    assert publication.journal == "journal"
-    assert publication.journal_doi == "journal doi"
-    assert publication.dataset_doi == "dataset doi"
-    assert publication.description == 'my description'
-    assert publication.public is True
-    assert publication.download_link == 'my download link'
-    assert publication.keywords == kws
+    model = gwl.create_model(**model_data)
 
-
-def test_get_publication_author(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    get_publication(gwl, mock_request, author='test_author')
-
-    mock_request.assert_called_with(
-        query="""
-            query ($author: String, $title: String, $id: ID) {
-                compasPublications (
-                    author_Icontains: $author,
-                    title_Icontains: $title,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            author
-                            published
-                            title
-                            year
-                            journal
-                            journalDoi
-                            datasetDoi
-                            creationTime
-                            description
-                            public
-                            downloadLink
-                            arxivId
-                            keywords {
-                                edges {
-                                    node {
-                                        id
-                                        tag
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'author': 'test_author',
-            'title': None,
-            'id': None
-        }
-    )
-
-
-def test_get_publication_title(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    get_publication(gwl, mock_request, title='test_title')
-
-    mock_request.assert_called_with(
-        query="""
-            query ($author: String, $title: String, $id: ID) {
-                compasPublications (
-                    author_Icontains: $author,
-                    title_Icontains: $title,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            author
-                            published
-                            title
-                            year
-                            journal
-                            journalDoi
-                            datasetDoi
-                            creationTime
-                            description
-                            public
-                            downloadLink
-                            arxivId
-                            keywords {
-                                edges {
-                                    node {
-                                        id
-                                        tag
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'author': None,
-            'title': 'test_title',
-            'id': None
-        }
-    )
-
-
-def test_get_publication_author_title(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    get_publication(gwl, mock_request, author='test_author', title='test_title')
-
-    mock_request.assert_called_with(
-        query="""
-            query ($author: String, $title: String, $id: ID) {
-                compasPublications (
-                    author_Icontains: $author,
-                    title_Icontains: $title,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            author
-                            published
-                            title
-                            year
-                            journal
-                            journalDoi
-                            datasetDoi
-                            creationTime
-                            description
-                            public
-                            downloadLink
-                            arxivId
-                            keywords {
-                                edges {
-                                    node {
-                                        id
-                                        tag
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'author': 'test_author',
-            'title': 'test_title',
-            'id': None
-        }
-    )
-
-
-def test_get_publication_author_title_id(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    with pytest.raises(SyntaxError):
-        get_publication(gwl, mock_request, author='test_author', title='test_title', _id='not_gonna_work')
-
-
-def test_create_model(create_model_request):
-    gw, mock_request = create_model_request
-
-    model = gw.create_model('my_name', 'my_summary', 'my_description')
-
-    assert model.id == 'Q29tcGFzTW9kZWxOb2RlOjI='
-    assert model.name == 'my_name'
-    assert model.summary == 'my_summary'
-    assert model.description == 'my_description'
+    assert model.id == model_id
+    for key, val in model_data.items():
+        assert getattr(model, key) == val
 
     assert compare_graphql_query(
         mock_request.mock_calls[0].args[0],
@@ -797,172 +443,94 @@ def test_create_model(create_model_request):
         """
     )
 
-    assert mock_request.mock_calls[0].args[1] == {
-        'input': {
-            'name': 'my_name',
-            'summary': 'my_summary',
-            'description': 'my_description'
-        }
-    }
+    assert mock_request.mock_calls[0].args[1] == {'input': model_data}
 
     assert compare_graphql_query(
         mock_request.mock_calls[1].kwargs['query'],
-        """
-            query ($name: String, $summary: String, $description: String, $id: ID) {
-                compasModels (
-                    name_Icontains: $name,
-                    summary_Icontains: $summary,
-                    description_Icontains: $description,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            name
-                            summary
-                            description
-                        }
-                    }
-                }
-            }
-        """
+        get_models_query
     )
 
     assert mock_request.mock_calls[1].kwargs['variables'] == {
         'name': None,
         'summary': None,
         'description': None,
-        'id': 'Q29tcGFzTW9kZWxOb2RlOjI='
+        'id': model_id
     }
 
 
-def get_model(gwl, mock_request, **kwargs):
-    mock_request.return_value = {
-        "compas_models": {
-            "edges": [
-                {
-                    "node": {
-                        "id": "Q29tcGFzTW9kZWxOb2RlOjI=",
-                        "name": "my_name",
-                        "summary": "my_summary",
-                        "description": "my_description"
-                    }
-                }
-            ]
-        }
-    }
+@pytest.mark.parametrize('name', [True, False])
+@pytest.mark.parametrize('description', [True, False])
+@pytest.mark.parametrize('summary', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_models(
+    setup_gwl_request,
+    query_model_return,
+    mock_model_data,
+    get_models_query,
+    name,
+    description,
+    summary,
+    _id
+):
+    gwl, mock_request = setup_gwl_request
 
-    models = gwl.get_models(**kwargs)
+    model_data = mock_model_data(i=1)
+    model_data['_id'] = 'mock_model_id1'
+
+    input_pairs = [('name', name), ('summary', summary), ('description', description), ('_id', _id)]
+    inputs = {key: model_data[key] for key, val in input_pairs if val}
+
+    model_id = model_data.pop('_id')
+
+    if _id and len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_models(**inputs)
+        return
+
+    mock_request.return_value = query_model_return(1)
+
+    models = gwl.get_models(**inputs)
     assert len(models) == 1
 
     model = models[0]
 
-    assert model.id == 'Q29tcGFzTW9kZWxOb2RlOjI='
-    assert model.name == 'my_name'
-    assert model.summary == 'my_summary'
-    assert model.description == 'my_description'
+    assert model.id == model_id
+    for key, val in model_data.items():
+        assert getattr(model, key) == val
 
-
-def test_get_models(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    get_model(gwl, mock_request)
-
-    mock_request.assert_called_with(
-        query="""
-            query ($name: String, $summary: String, $description: String, $id: ID) {
-                compasModels (
-                    name_Icontains: $name,
-                    summary_Icontains: $summary,
-                    description_Icontains: $description,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            name
-                            summary
-                            description
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'name': None,
-            'summary': None,
-            'description': None,
-            'id': None
-        }
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].kwargs['query'],
+        get_models_query
     )
 
-
-def test_get_model_name_summary_description(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    get_model(gwl, mock_request, name='test_name', summary='test_summary', description='test_description')
-
-    mock_request.assert_called_with(
-        query="""
-            query ($name: String, $summary: String, $description: String, $id: ID) {
-                compasModels (
-                    name_Icontains: $name,
-                    summary_Icontains: $summary,
-                    description_Icontains: $description,
-                    id: $id
-                ) {
-                    edges {
-                        node {
-                            id
-                            name
-                            summary
-                            description
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'name': 'test_name',
-            'summary': 'test_summary',
-            'description': 'test_description',
-            'id': None
-        }
-    )
+    assert mock_request.mock_calls[0].kwargs['variables'] == {
+        'name': None,
+        'summary': None,
+        'description': None,
+        'id': inputs.pop('_id', None),
+        **inputs,
+    }
 
 
-def test_get_model_name_summary_description_id(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
+def test_create_dataset(create_dataset_request, mock_dataset_data, get_datasets_query):
+    gwl, mock_request = create_dataset_request
 
-    with pytest.raises(SyntaxError):
-        get_model(
-            gwl,
-            mock_request,
-            name='test_name',
-            summary='test_summary',
-            description='test_description',
-            _id='not_gonna_work'
-        )
-
-
-def test_create_dataset(create_dataset_request, mock_publication_data):
-    gw, mock_request = create_dataset_request
-    publication_data, model_data = mock_publication_data
-
-    publication = Publication(gw, **publication_data)
-    model = Model(gw, **model_data)
+    dataset_data = mock_dataset_data(gwl, i=1)
+    dataset_id = 'mock_dataset_id1'
 
     with NamedTemporaryFile() as tf:
-        dataset = gw.create_dataset(publication, model, Path(tf.name))
+        dataset = gwl.create_dataset(dataset_data['publication'], dataset_data['model'], Path(tf.name))
 
-    assert dataset.id == 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3='
-    assert dataset.files == ['test_file.h5']
+    assert dataset.id == dataset_id
+    assert dataset.files == ['mock_file1.h5']
 
-    for k, v in publication.__dict__.items():
-        assert getattr(dataset.publication, k) == v
+    publication, model = dataset.publication, dataset.model
 
-    for k, v in model.__dict__.items():
-        assert getattr(dataset.model, k) == v
+    for key, val in publication.__dict__.items():
+        assert getattr(dataset.publication, key) == val
+
+    for key, val in model.__dict__.items():
+        assert getattr(dataset.model, key) == val
 
     assert compare_graphql_query(
         mock_request.mock_calls[0].kwargs['query'],
@@ -992,212 +560,61 @@ def test_create_dataset(create_dataset_request, mock_publication_data):
 
     assert compare_graphql_query(
         mock_request.mock_calls[2].kwargs['query'],
-        """
-            query ($publication: ID, $model: ID, $id: ID) {
-                compasDatasetModels (compasPublication: $publication, compasModel: $model, id: $id) {
-                    edges {
-                        node {
-                            id
-                            files
-                            compasPublication {
-                                id
-                                author
-                                published
-                                title
-                                year
-                                journal
-                                journalDoi
-                                datasetDoi
-                                creationTime
-                                description
-                                public
-                                downloadLink
-                                arxivId
-                                keywords {
-                                    edges {
-                                        node {
-                                            id
-                                            tag
-                                        }
-                                    }
-                                }
-                            }
-                            compasModel {
-                                id
-                                name
-                                summary
-                                description
-                            }
-                        }
-                    }
-                }
-            }
-        """
+        get_datasets_query
     )
 
     assert mock_request.mock_calls[2].kwargs['variables'] == {
         'publication': None,
         'model': None,
-        'id': 'Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3='
+        'id': dataset_id
     }
 
 
-def get_dataset(gwl, mock_request, mock_publication_data, **kwargs):
-    publication_data, model_data = mock_publication_data
+@pytest.mark.parametrize('publication', [True, False])
+@pytest.mark.parametrize('model', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_datasets(
+    setup_gwl_request,
+    query_dataset_return,
+    mock_dataset_data,
+    get_datasets_query,
+    publication,
+    model,
+    _id
+):
+    gwl, mock_request = setup_gwl_request
 
-    publication_data = publication_data.copy()
-    publication_data['keywords'] = {
-        'edges': []
-    }
+    dataset_data = mock_dataset_data(gwl, i=1)
+    dataset_data['_id'] = 'mock_dataset_id1'
 
-    mock_request.return_value = {
-        "compas_dataset_models": {
-            "edges": [
-                {
-                    "node": {
-                        "id": "Q29tcGFzRGF0YXNldE1vZGVsTm9kZTo3=",
-                        "files": [
-                            'test_file.h5'
-                        ],
-                        'compas_model': model_data,
-                        'compas_publication': publication_data
-                    }
-                }
-            ]
-        }
-    }
+    input_pairs = [('publication', publication), ('model', model), ('_id', _id)]
+    inputs = {key: dataset_data[key] for key, val in input_pairs if val}
 
-    datasets = gwl.get_datasets(**kwargs)
+    dataset_id = dataset_data.pop('_id')
+
+    if _id and len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_datasets(**inputs)
+        return
+
+    mock_request.return_value = query_dataset_return(1)
+
+    datasets = gwl.get_datasets(**inputs)
     assert len(datasets) == 1
 
+    dataset = datasets[0]
 
-def test_get_datasets(setup_gwl_request, mock_publication_data):
-    gwl, mock_request = setup_gwl_request
+    assert dataset.id == dataset_id
+    for key, val in dataset_data.items():
+        assert getattr(dataset, key) == val
 
-    get_dataset(gwl, mock_request, mock_publication_data)
-
-    mock_request.assert_called_with(
-        query="""
-            query ($publication: ID, $model: ID, $id: ID) {
-                compasDatasetModels (compasPublication: $publication, compasModel: $model, id: $id) {
-                    edges {
-                        node {
-                            id
-                            files
-                            compasPublication {
-                                id
-                                author
-                                published
-                                title
-                                year
-                                journal
-                                journalDoi
-                                datasetDoi
-                                creationTime
-                                description
-                                public
-                                downloadLink
-                                arxivId
-                                keywords {
-                                    edges {
-                                        node {
-                                            id
-                                            tag
-                                        }
-                                    }
-                                }
-                            }
-                            compasModel {
-                                id
-                                name
-                                summary
-                                description
-                            }
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'publication': None,
-            'model': None,
-            'id': None
-        }
+    assert compare_graphql_query(
+        mock_request.mock_calls[0].kwargs['query'],
+        get_datasets_query
     )
 
-
-def test_get_dataset_publication_model(setup_gwl_request, mock_publication_data):
-    gwl, mock_request = setup_gwl_request
-    publication_data, model_data = mock_publication_data
-
-    publication = Publication(gwl, **publication_data)
-    model = Model(gwl, **model_data)
-
-    get_dataset(gwl, mock_request, mock_publication_data, publication=publication, model=model)
-
-    mock_request.assert_called_with(
-        query="""
-            query ($publication: ID, $model: ID, $id: ID) {
-                compasDatasetModels (compasPublication: $publication, compasModel: $model, id: $id) {
-                    edges {
-                        node {
-                            id
-                            files
-                            compasPublication {
-                                id
-                                author
-                                published
-                                title
-                                year
-                                journal
-                                journalDoi
-                                datasetDoi
-                                creationTime
-                                description
-                                public
-                                downloadLink
-                                arxivId
-                                keywords {
-                                    edges {
-                                        node {
-                                            id
-                                            tag
-                                        }
-                                    }
-                                }
-                            }
-                            compasModel {
-                                id
-                                name
-                                summary
-                                description
-                            }
-                        }
-                    }
-                }
-            }
-        """,
-        variables={
-            'publication': 'Q29tcGFzUHVibGljYXRpb25Ob2RlOjUw',
-            'model': 'Q29tcGFzTW9kZWxOb2RlOjI=',
-            'id': None
-        }
-    )
-
-
-def test_get_dataset_publication_model_id(setup_gwl_request, mock_publication_data):
-    gwl, mock_request = setup_gwl_request
-    publication_data, model_data = mock_publication_data
-
-    publication = Publication(gwl, **publication_data)
-    model = Model(gwl, **model_data)
-
-    with pytest.raises(SyntaxError):
-        get_dataset(
-            gwl,
-            mock_request,
-            mock_publication_data,
-            publication=publication,
-            model=model,
-            _id='not_gonna_work'
-        )
+    assert mock_request.mock_calls[0].kwargs['variables'] == {
+        'publication': inputs['publication'].id if 'publication' in inputs else None,
+        'model': inputs['model'].id if 'model' in inputs else None,
+        'id': inputs.get('_id', None),
+    }
