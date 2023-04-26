@@ -174,7 +174,8 @@ def query_dataset_return(query_publication_return, query_model_return):
                             'files': [
                                 f'mock_file{i}.h5'
                             ],
-                            'compas_publication': query_publication_return(i)['compas_publications']['edges'][0]['node'],
+                            'compas_publication':
+                                query_publication_return(i)['compas_publications']['edges'][0]['node'],
                             'compas_model': query_model_return(i)['compas_models']['edges'][0]['node'],
                         } for i in range(1, n_datasets+1)
                     }

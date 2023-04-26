@@ -4,9 +4,6 @@ from tempfile import NamedTemporaryFile
 
 import pytest
 
-from gwlandscape_python.keyword_type import Keyword
-from gwlandscape_python.model_type import Model
-from gwlandscape_python.publication_type import Publication
 from gwlandscape_python.tests.utils import compare_graphql_query
 
 
@@ -230,7 +227,7 @@ def test_create_keyword(create_keyword_request, mock_keyword_data, get_keywords_
     keyword_id = 'mock_keyword_id1'
 
     keyword = gwl.create_keyword(**keyword_data)
-    
+
     assert keyword.id == keyword_id
     assert keyword.tag == keyword_data['tag']
 
@@ -259,69 +256,36 @@ def test_create_keyword(create_keyword_request, mock_keyword_data, get_keywords_
     }
 
 
-def test_get_keyword_exact(setup_gwl_request, query_keyword_return, mock_keyword_data, get_keywords_query):
+@pytest.mark.parametrize('exact', [True, False])
+@pytest.mark.parametrize('contains', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_keyword_exact(
+    setup_gwl_request,
+    query_keyword_return,
+    mock_keyword_data,
+    get_keywords_query,
+    exact,
+    contains,
+    _id
+):
     gwl, mock_request = setup_gwl_request
 
     keyword_data = mock_keyword_data(i=1)
     keyword_id = 'mock_keyword_id1'
 
-    mock_request.return_value = query_keyword_return(n_keywords=1)
+    input_pairs = [('exact', exact), ('contains', contains)]
+    inputs = {key: keyword_data['tag'] for key, val in input_pairs if val}
+    if _id:
+        inputs['_id'] = keyword_id
 
-    kws = gwl.get_keywords(exact=keyword_data['tag'])
-    assert len(kws) == 1
-
-    keyword = kws[0]
-    assert keyword.id == keyword_id
-    assert keyword.tag == keyword_data['tag']
-
-    assert compare_graphql_query(
-        mock_request.mock_calls[0].kwargs['query'],
-        get_keywords_query
-    )
-
-    assert mock_request.mock_calls[0].kwargs['variables'] == {
-        'exact': keyword_data['tag'],
-        'contains': None,
-        'id': None
-    }
-
-
-def test_get_keyword_contains(setup_gwl_request, query_keyword_return, mock_keyword_data, get_keywords_query):
-    gwl, mock_request = setup_gwl_request
-
-    keyword_data = mock_keyword_data(i=1)
-    keyword_id = 'mock_keyword_id1'
+    if len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_keywords(**inputs)
+        return
 
     mock_request.return_value = query_keyword_return(n_keywords=1)
 
-    kws = gwl.get_keywords(contains=keyword_data['tag'])
-    assert len(kws) == 1
-
-    keyword = kws[0]
-    assert keyword.id == keyword_id
-    assert keyword.tag == keyword_data['tag']
-
-    assert compare_graphql_query(
-        mock_request.mock_calls[0].kwargs['query'],
-        get_keywords_query
-    )
-
-    assert mock_request.mock_calls[0].kwargs['variables'] == {
-        'exact': None,
-        'contains': keyword_data['tag'],
-        'id': None
-    }
-
-
-def test_get_keyword_id(setup_gwl_request, query_keyword_return, mock_keyword_data, get_keywords_query):
-    gwl, mock_request = setup_gwl_request
-
-    keyword_data = mock_keyword_data(i=1)
-    keyword_id = 'mock_keyword_id1'
-
-    mock_request.return_value = query_keyword_return(n_keywords=1)
-
-    kws = gwl.get_keywords(_id=keyword_id)
+    kws = gwl.get_keywords(**inputs)
     assert len(kws) == 1
 
     keyword = kws[0]
@@ -336,7 +300,8 @@ def test_get_keyword_id(setup_gwl_request, query_keyword_return, mock_keyword_da
     assert mock_request.mock_calls[0].kwargs['variables'] == {
         'exact': None,
         'contains': None,
-        'id': keyword_id
+        'id': inputs.pop('_id', None),
+        **inputs
     }
 
 
@@ -404,55 +369,36 @@ def test_create_publication(create_publication_request, mock_publication_data, g
     }
 
 
-
-def test_get_publication_author(
+@pytest.mark.parametrize('author', [True, False])
+@pytest.mark.parametrize('title', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_publication_author_title(
     setup_gwl_request,
     query_publication_return,
     mock_publication_data,
-    get_publications_query
+    get_publications_query,
+    author,
+    title,
+    _id
 ):
     gwl, mock_request = setup_gwl_request
 
     publication_data = mock_publication_data(1, n_keywords=2)
-    publication_id = 'mock_publication_id1'
+    publication_data['_id'] = 'mock_publication_id1'
+
+    input_pairs = [('author', author), ('title', title), ('_id', _id)]
+    inputs = {key: publication_data[key] for key, val in input_pairs if val}
+
+    publication_id = publication_data.pop('_id')
+
+    if _id and len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_publications(**inputs)
+        return
 
     mock_request.return_value = query_publication_return(n_publications=1)
 
-    publications = gwl.get_publications(author=publication_data['author'])
-    assert len(publications) == 1
-
-    publication = publications[0]
-
-    assert publication.id == publication_id
-    for key, val in publication_data.items():
-        assert getattr(publication, key) == val
-
-    assert compare_graphql_query(
-        mock_request.mock_calls[0].kwargs['query'],
-        get_publications_query
-    )
-
-    assert mock_request.mock_calls[0].kwargs['variables'] == {
-        'author': publication_data['author'],
-        'title': None,
-        'id': None
-    }
-
-
-def test_get_publication_title(
-    setup_gwl_request,
-    query_publication_return,
-    mock_publication_data,
-    get_publications_query
-):
-    gwl, mock_request = setup_gwl_request
-
-    publication_data = mock_publication_data(1, n_keywords=2)
-    publication_id = 'mock_publication_id1'
-
-    mock_request.return_value = query_publication_return(n_publications=1)
-
-    publications = gwl.get_publications(title=publication_data['title'])
+    publications = gwl.get_publications(**inputs)
     assert len(publications) == 1
 
     publication = publications[0]
@@ -468,50 +414,10 @@ def test_get_publication_title(
 
     assert mock_request.mock_calls[0].kwargs['variables'] == {
         'author': None,
-        'title': publication_data['title'],
-        'id': None
+        'title': None,
+        'id': inputs.pop('_id', None),
+        **inputs
     }
-
-
-def test_get_publication_author_title(
-    setup_gwl_request,
-    query_publication_return,
-    mock_publication_data,
-    get_publications_query
-):
-    gwl, mock_request = setup_gwl_request
-
-    publication_data = mock_publication_data(1, n_keywords=2)
-    publication_id = 'mock_publication_id1'
-
-    mock_request.return_value = query_publication_return(n_publications=1)
-
-    publications = gwl.get_publications(title=publication_data['title'], author=publication_data['author'])
-    assert len(publications) == 1
-
-    publication = publications[0]
-
-    assert publication.id == publication_id
-    for key, val in publication_data.items():
-        assert getattr(publication, key) == val
-
-    assert compare_graphql_query(
-        mock_request.mock_calls[0].kwargs['query'],
-        get_publications_query
-    )
-
-    assert mock_request.mock_calls[0].kwargs['variables'] == {
-        'author': publication_data['author'],
-        'title': publication_data['title'],
-        'id': None
-    }
-
-
-def test_get_publication_author_title_id(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    with pytest.raises(SyntaxError):
-        gwl.get_publications(author='all', title='together', _id='not_gonna_work')
 
 
 def test_create_model(create_model_request, mock_model_data, get_models_query):
@@ -552,15 +458,38 @@ def test_create_model(create_model_request, mock_model_data, get_models_query):
     }
 
 
-def test_get_models(setup_gwl_request, query_model_return, mock_model_data, get_models_query):
+@pytest.mark.parametrize('name', [True, False])
+@pytest.mark.parametrize('description', [True, False])
+@pytest.mark.parametrize('summary', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_models(
+    setup_gwl_request,
+    query_model_return,
+    mock_model_data,
+    get_models_query,
+    name,
+    description,
+    summary,
+    _id
+):
     gwl, mock_request = setup_gwl_request
 
     model_data = mock_model_data(i=1)
-    model_id = 'mock_model_id1'
+    model_data['_id'] = 'mock_model_id1'
+
+    input_pairs = [('name', name), ('summary', summary), ('description', description), ('_id', _id)]
+    inputs = {key: model_data[key] for key, val in input_pairs if val}
+
+    model_id = model_data.pop('_id')
+
+    if _id and len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_models(**inputs)
+        return
 
     mock_request.return_value = query_model_return(1)
 
-    models = gwl.get_models()
+    models = gwl.get_models(**inputs)
     assert len(models) == 1
 
     model = models[0]
@@ -578,54 +507,9 @@ def test_get_models(setup_gwl_request, query_model_return, mock_model_data, get_
         'name': None,
         'summary': None,
         'description': None,
-        'id': None
+        'id': inputs.pop('_id', None),
+        **inputs,
     }
-
-
-def test_get_models_name_summary_description(
-    setup_gwl_request,
-    query_model_return,
-    mock_model_data,
-    get_models_query
-):
-    gwl, mock_request = setup_gwl_request
-
-    model_data = mock_model_data(i=1)
-    model_id = 'mock_model_id1'
-
-    mock_request.return_value = query_model_return(1)
-
-    models = gwl.get_models(
-        name=model_data['name'],
-        summary=model_data['summary'],
-        description=model_data['description'],
-    )
-    assert len(models) == 1
-
-    model = models[0]
-
-    assert model.id == model_id
-    for key, val in model_data.items():
-        assert getattr(model, key) == val
-
-    assert compare_graphql_query(
-        mock_request.mock_calls[0].kwargs['query'],
-        get_models_query
-    )
-
-    assert mock_request.mock_calls[0].kwargs['variables'] == {
-            'name': model_data['name'],
-            'summary': model_data['summary'],
-            'description': model_data['description'],
-            'id': None
-        }
-
-
-def test_get_model_name_summary_description_id(setup_gwl_request):
-    gwl, mock_request = setup_gwl_request
-
-    with pytest.raises(SyntaxError):
-        gwl.get_models(name='this', summary='will', description='not', _id='work')
 
 
 def test_create_dataset(create_dataset_request, mock_dataset_data, get_datasets_query):
@@ -686,49 +570,36 @@ def test_create_dataset(create_dataset_request, mock_dataset_data, get_datasets_
     }
 
 
-def test_get_datasets(setup_gwl_request, query_dataset_return, mock_dataset_data, get_datasets_query):
-    gwl, mock_request = setup_gwl_request
-
-    dataset_data = mock_dataset_data(gwl, i=1)
-    dataset_id = 'mock_dataset_id1'
-
-    mock_request.return_value = query_dataset_return(1)
-
-    datasets = gwl.get_datasets()
-    assert len(datasets) == 1
-
-    dataset = datasets[0]
-
-    assert dataset.id == dataset_id
-    for key, val in dataset_data.items():
-        assert getattr(dataset, key) == val
-
-    assert compare_graphql_query(
-        mock_request.mock_calls[0].kwargs['query'],
-        get_datasets_query
-    )
-
-    assert mock_request.mock_calls[0].kwargs['variables'] == {
-        'publication': None,
-        'model': None,
-        'id': None
-    }
-
-
-def test_get_datasets_publication_model(
+@pytest.mark.parametrize('publication', [True, False])
+@pytest.mark.parametrize('model', [True, False])
+@pytest.mark.parametrize('_id', [True, False])
+def test_get_datasets(
     setup_gwl_request,
     query_dataset_return,
     mock_dataset_data,
-    get_datasets_query
+    get_datasets_query,
+    publication,
+    model,
+    _id
 ):
     gwl, mock_request = setup_gwl_request
 
     dataset_data = mock_dataset_data(gwl, i=1)
-    dataset_id = 'mock_dataset_id1'
+    dataset_data['_id'] = 'mock_dataset_id1'
+
+    input_pairs = [('publication', publication), ('model', model), ('_id', _id)]
+    inputs = {key: dataset_data[key] for key, val in input_pairs if val}
+
+    dataset_id = dataset_data.pop('_id')
+
+    if _id and len(inputs) > 1:
+        with pytest.raises(SyntaxError):
+            gwl.get_datasets(**inputs)
+        return
 
     mock_request.return_value = query_dataset_return(1)
 
-    datasets = gwl.get_datasets(**dataset_data)
+    datasets = gwl.get_datasets(**inputs)
     assert len(datasets) == 1
 
     dataset = datasets[0]
@@ -743,17 +614,7 @@ def test_get_datasets_publication_model(
     )
 
     assert mock_request.mock_calls[0].kwargs['variables'] == {
-        'id': None,
-        'publication': 'mock_publication_id1',
-        'model': 'mock_model_id1'
+        'publication': inputs['publication'].id if 'publication' in inputs else None,
+        'model': inputs['model'].id if 'model' in inputs else None,
+        'id': inputs.get('_id', None),
     }
-
-
-def test_get_datasets_publication_model_id(
-    setup_gwl_request,
-    mock_dataset_data,
-):
-    gwl, mock_request = setup_gwl_request
-
-    with pytest.raises(SyntaxError):
-        gwl.get_datasets(_id='not_gonna_work', **mock_dataset_data(gwl, i=1))
