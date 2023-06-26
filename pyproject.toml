@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gwlandscape-python"
-version = "0.3.2"
+version = "0.3.3"
 description = "Wrapper of GWDC API, used for interacting with the GWLandscape endpoints"
 authors = ["Thomas Reichardt <treichardt@swin.edu.au>", "Lewis Lakerink <llakerink@swin.edu.au"]
 license = "MIT"
@@ -10,7 +10,7 @@ include = ["LICENSE",]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-gwdc-python = "^0.4.1"
+gwdc-python = "^0.6.0"
 requests = "^2.25.1"
 jwt = "^1.2.0"
 graphene-file-upload = "^1.3.0"
