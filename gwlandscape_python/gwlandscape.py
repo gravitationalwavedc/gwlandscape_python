@@ -4,7 +4,7 @@ from gwdc_python import GWDC
 from gwdc_python.logger import create_logger
 
 import gwlandscape_python
-from gwlandscape_python.utils import mutually_exclusive
+from gwlandscape_python.utils import mutually_exclusive, validate_dataset
 from gwlandscape_python.settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
 
 logger = create_logger(__name__)
@@ -382,6 +382,8 @@ class GWLandscape:
     def create_dataset(self, publication, model, datafile):
         """
         Creates a new dataset object with the specified publication and model.
+        Datasets must contain exactly one hdf5 file, and should either be a hdf5 file
+        or a tarfile containing the hdf5 file.
 
         Parameters
         ----------
@@ -389,8 +391,8 @@ class GWLandscape:
             The Publication this dataset is for
         model : Model
             The model this dataset is for
-        datafile : Path
-            Local path to the COMPAS dataset file
+        datafile : str or Path
+            Local path to the COMPAS h5 file or tarfile
 
         Returns
         -------
@@ -404,6 +406,8 @@ class GWLandscape:
                 }
             }
         """
+        file_path = Path(datafile)
+        validate_dataset(file_path)
 
         with Path(datafile).open('rb') as f:
             variables = {

@@ -1,4 +1,7 @@
 from functools import wraps
+from pathlib import Path
+import tarfile
+import h5py
 
 
 # Taken from https://stackoverflow.com/a/40363565
@@ -33,3 +36,15 @@ def mutually_exclusive(*keywords):
             return func(*args, **kwargs)
         return inner
     return wrapper
+
+
+def validate_dataset(file_path):
+    if h5py.is_hdf5(file_path):
+        return None
+
+    if not tarfile.is_tarfile(file_path):
+        raise Exception('Upload is neither a tarfile nor a hdf5 file')
+
+    with tarfile.open(file_path) as f:
+        if sum(Path(name).suffix in ['.h5', '.hdf5'] for name in f.getnames()) != 1:
+            raise Exception('Tarfile must contain exactly one hdf5 file')
