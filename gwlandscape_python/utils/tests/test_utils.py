@@ -1,5 +1,8 @@
+import tempfile
+import tarfile
+import h5py
 import pytest
-from gwlandscape_python.utils import mutually_exclusive, _get_args_dict
+from gwlandscape_python.utils import mutually_exclusive, _get_args_dict, validate_dataset
 
 
 @pytest.mark.parametrize("args,kwargs,args_dict", [
@@ -87,3 +90,30 @@ def test_mutually_exclusive_fail(get_mutex_func, mutex_args, args_dict):
 def test_mutually_exclusive_succeed(get_mutex_func, mutex_args, args_dict):
     func = get_mutex_func(*mutex_args)
     assert func(**args_dict)
+
+
+def test_validate_dataset_h5():
+    h5 = h5py.File(tempfile.NamedTemporaryFile(suffix='.h5').name, 'w')
+    assert validate_dataset(h5.filename) is None
+
+
+def test_validate_dataset_tar_with_h5():
+    with tempfile.NamedTemporaryFile(suffix='.tar.gz', delete=False) as f:
+        with tarfile.open(fileobj=f, mode='w:gz') as tar:
+            tar.add(h5py.File(tempfile.NamedTemporaryFile(suffix='.h5').name, 'w').filename)
+    assert validate_dataset(tar.name) is None
+
+
+def test_validate_dataset_tar_with_multiple_h5():
+    with tempfile.NamedTemporaryFile(suffix='.tar.gz', delete=False) as f:
+        with tarfile.open(fileobj=f, mode='w:gz') as tar:
+            tar.add(h5py.File(tempfile.NamedTemporaryFile(suffix='.h5').name, 'w').filename)
+            tar.add(h5py.File(tempfile.NamedTemporaryFile(suffix='.h5').name, 'w').filename)
+
+    with pytest.raises(Exception):
+        validate_dataset(tar.name)
+
+
+def test_validate_dataset_not_tar_or_h5():
+    with pytest.raises(Exception):
+        validate_dataset(tempfile.NamedTemporaryFile().name)

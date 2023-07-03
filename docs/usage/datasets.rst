@@ -28,6 +28,10 @@ To create a new dataset on the GWLandscape service, we can use the :meth:`~.GWLa
         publication=publication,
         model=model,
         datafile=Path('/path/to/datafile')
+    )
+
+.. note::
+    A datafile must be either a single HDF5 file, or a tarfile containing exactly one HDF5 file (though other files may also be included alongside it).
 
 Updating and deleting datasets
 ------------------------------

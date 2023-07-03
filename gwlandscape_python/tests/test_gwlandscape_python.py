@@ -1,6 +1,6 @@
 import uuid
-from pathlib import Path
 from tempfile import NamedTemporaryFile
+import h5py
 
 import pytest
 
@@ -150,7 +150,6 @@ def get_models_query():
 
 @pytest.fixture
 def create_dataset_request(setup_gwl_request, query_dataset_return):
-    print(query_dataset_return(n_datasets=1))
     response_data = [
         {
             "generate_compas_dataset_model_upload_token": {
@@ -518,8 +517,9 @@ def test_create_dataset(create_dataset_request, mock_dataset_data, get_datasets_
     dataset_data = mock_dataset_data(gwl, i=1)
     dataset_id = 'mock_dataset_id1'
 
-    with NamedTemporaryFile() as tf:
-        dataset = gwl.create_dataset(dataset_data['publication'], dataset_data['model'], Path(tf.name))
+    with NamedTemporaryFile(suffix='.h5') as tf:
+        h5_file = h5py.File(tf.name, 'w')
+        dataset = gwl.create_dataset(dataset_data['publication'], dataset_data['model'], h5_file.filename)
 
     assert dataset.id == dataset_id
     assert dataset.files == ['mock_file1.h5']
