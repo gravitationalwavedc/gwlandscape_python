@@ -4,6 +4,8 @@ from .publication_type import Publication
 from .model_type import Model
 from .dataset_type import Dataset
 
+from gwdc_python.files import FileReference, FileReferenceList
+
 
 try:
     from importlib.metadata import version

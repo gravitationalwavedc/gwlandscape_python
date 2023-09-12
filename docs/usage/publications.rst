@@ -83,6 +83,7 @@ Alternatively, we can use a list of keyword strings, but if these keywords don't
         author='Bill Nye',
         title='How gravitational waves prove the Flat Earth model',
         arxiv_id='1234.12345',
+        year=2023,
         keywords=keywords
     )
 

@@ -1,5 +1,5 @@
 import pytest
-from gwlandscape_python import GWLandscape
+from gwlandscape_python import GWLandscape, FileReference, FileReferenceList
 from gwlandscape_python.dataset_type import Dataset
 from gwlandscape_python.keyword_type import Keyword
 from gwlandscape_python.model_type import Model
@@ -156,7 +156,6 @@ def create_dataset(mock_dataset_data):
         return Dataset(
             client=client,
             id=f'mock_dataset_id{i}',
-            files=[f'mock_file{i}.h5'],
             **mock_dataset_data(client, i)
         )
     return _create_dataset
@@ -171,9 +170,6 @@ def query_dataset_return(query_publication_return, query_model_return):
                     {
                         'node': {
                             'id': f'mock_dataset_id{i}',
-                            'files': [
-                                f'mock_file{i}.h5'
-                            ],
                             'compas_publication':
                                 query_publication_return(i)['compas_publications']['edges'][0]['node'],
                             'compas_model': query_model_return(i)['compas_models']['edges'][0]['node'],
@@ -183,3 +179,38 @@ def query_dataset_return(query_publication_return, query_model_return):
             }
         }
     return _query_dataset_return
+
+
+@pytest.fixture
+def mock_dataset_file_data():
+    def _mock_dataset_file_data(i=1):
+        return {
+            'path': f'path/to/test_{i}.h5',
+            'file_size': f'{i}',
+            'download_token': f'test_token_{i}',
+        }
+    return _mock_dataset_file_data
+
+
+@pytest.fixture
+def query_dataset_files_return(mock_dataset_file_data):
+    def _query_dataset_files_return(n_files):
+        return {
+            'compas_dataset_model': {
+                'files': [mock_dataset_file_data(i) for i in range(1, n_files+1)]
+            }
+        }
+    return _query_dataset_files_return
+
+
+@pytest.fixture
+def create_dataset_files(mock_dataset_file_data):
+    def _create_dataset_files(n_files):
+        return FileReferenceList([
+            FileReference(
+                **mock_dataset_file_data(i),
+                job_id=f'id{i}',
+                job_type=None
+            ) for i in range(1, n_files+1)
+        ])
+    return _create_dataset_files
