@@ -1,7 +1,7 @@
 GWLandscape Python API
 ======================
 
-`GWLandscape <https://gwlandscape.org.au/>`_ is a service used to handle both the submission of COMPAS jobs (todo)
+`GWLandscape <https://gwlandscape.org.au/>`_ is a service used to handle both the creation of publication datasets and the submission of COMPAS jobs (todo).
 
 Check out the `documentation <https://gwlandscape-python.readthedocs.io/en/latest/>`_ for more information.
 

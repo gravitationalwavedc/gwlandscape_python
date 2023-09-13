@@ -1,17 +1,23 @@
 from dataclasses import dataclass, field
 
+from gwdc_python.jobs.meta import JobMeta
+
 import gwlandscape_python
 from gwlandscape_python.model_type import Model
 from gwlandscape_python.publication_type import Publication
+from gwlandscape_python.utils import file_filters
 
 
 @dataclass
-class Dataset:
+class Dataset(metaclass=JobMeta):
     client: gwlandscape_python.gwlandscape.GWLandscape = field(compare=False)
     id: str
     publication: Publication
     model: Model
-    files: list
+
+    FILE_LIST_FILTERS = {
+        'data': file_filters.data_filter
+    }
 
     def __repr__(self):
         return f'Dataset({self.publication} - {self.model})'
@@ -77,3 +83,13 @@ class Dataset:
         result = self.client.request(mutation, params)
 
         assert result['delete_compas_dataset_model']['result']
+
+    def get_full_file_list(self):
+        """Get information for all files associated with this dataset
+
+        Returns
+        -------
+        ~gwdc_python.files.file_reference.FileReferenceList
+            Contains FileReference instances for each of the files associated with this dataset
+        """
+        return self.client._get_files_by_dataset_id(self.id)

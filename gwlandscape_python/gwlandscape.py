@@ -1,10 +1,12 @@
 from pathlib import Path
 
 from gwdc_python import GWDC
+from gwdc_python.files import FileReference, FileReferenceList
 from gwdc_python.logger import create_logger
 
 import gwlandscape_python
 from gwlandscape_python.utils import mutually_exclusive, validate_dataset
+from gwlandscape_python.utils.file_download import _download_files, _get_file_map_fn, _save_file_map_fn
 from gwlandscape_python.settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
 
 logger = create_logger(__name__)
@@ -455,7 +457,6 @@ class GWLandscape:
                     edges {
                         node {
                             id
-                            files
                             compasPublication {
                                 id
                                 author
@@ -540,3 +541,80 @@ class GWLandscape:
 
         data = self.request(query=query)
         return data['generate_compas_dataset_model_upload_token']['token']
+
+    def _get_files_by_dataset_id(self, dataset_id):
+        query = """
+            query ($id: ID!) {
+                compasDatasetModel (id: $id) {
+                    files {
+                        path
+                        fileSize
+                        downloadToken
+                    }
+                }
+            }
+        """
+
+        variables = {
+            "id": dataset_id
+        }
+
+        data = self.request(query=query, variables=variables)
+
+        file_list = FileReferenceList()
+        for file_data in data['compas_dataset_model']['files']:
+            file_list.append(
+                FileReference(
+                    **file_data,
+                    job_id=dataset_id,
+                    job_type=None
+                ),
+            )
+
+        return file_list
+
+    def get_files_by_reference(self, file_references):
+        """Obtains file data when provided a :class:`~gwdc_python.files.file_reference.FileReferenceList`
+
+        Parameters
+        ----------
+        file_references : ~gwdc_python.files.file_reference.FileReferenceList
+            Contains the :class:`~gwdc_python.files.file_reference.FileReference` objects for which
+            to download the contents
+
+        Returns
+        -------
+        list
+            List of tuples containing the file path and file contents as a byte string
+        """
+        file_tokens = file_references.get_tokens()
+        file_paths = file_references.get_paths()
+        total_size = file_references.get_total_bytes()
+
+        files = _download_files(_get_file_map_fn, file_tokens, file_paths, total_size)
+
+        logger.info(f'All {len(file_tokens)} files downloaded!')
+
+        return files
+
+    def save_files_by_reference(self, file_references, root_path, preserve_directory_structure=True):
+        """Save files when provided a :class:`~gwdc_python.files.file_reference.FileReferenceList` and a root path
+
+        Parameters
+        ----------
+        file_references : ~gwdc_python.files.file_reference.FileReferenceList
+            Contains the :class:`~gwdc_python.files.file_reference.FileReference` objects for which
+            to save the associated files
+        root_path : str or ~pathlib.Path
+            Directory into which to save the files
+        preserve_directory_structure : bool, optional
+            Remove any directory structure for the downloaded files, by default True
+        """
+        file_tokens = file_references.get_tokens()
+        output_paths = file_references.get_output_paths(root_path, preserve_directory_structure)
+        file_paths = file_references.get_paths()
+        total_size = file_references.get_total_bytes()
+
+        _download_files(_save_file_map_fn, file_tokens, output_paths, file_paths, total_size)
+
+        logger.info(f'All {len(file_tokens)} files saved!')
