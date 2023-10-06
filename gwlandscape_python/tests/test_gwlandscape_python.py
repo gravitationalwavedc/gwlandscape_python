@@ -221,13 +221,17 @@ def get_datasets_query():
 
 @pytest.fixture
 def setup_mock_download_fns(mocker, create_dataset_files):
-    mock_files = mocker.Mock(return_value=[(f.path, NamedTemporaryFile()) for f in create_dataset_files(3)])
+    def _setup_mock_download_fns(dataset):
+        mock_files = mocker.Mock(
+            return_value=[(f.path, NamedTemporaryFile()) for f in create_dataset_files(dataset, 3)]
+        )
 
-    return (
-        mocker.patch('gwlandscape_python.gwlandscape._download_files', mock_files),
-        mocker.patch('gwlandscape_python.gwlandscape._get_file_map_fn'),
-        mocker.patch('gwlandscape_python.gwlandscape._save_file_map_fn'),
-    )
+        return (
+            mocker.patch('gwlandscape_python.gwlandscape._download_files', mock_files),
+            mocker.patch('gwlandscape_python.gwlandscape._get_file_map_fn'),
+            mocker.patch('gwlandscape_python.gwlandscape._save_file_map_fn'),
+        )
+    return _setup_mock_download_fns
 
 
 def test_create_keyword(create_keyword_request, mock_keyword_data, get_keywords_query):
@@ -630,53 +634,69 @@ def test_get_datasets(
     }
 
 
-def test_gwlandscape_files_by_job_id(setup_gwl_request, query_dataset_files_return, mock_dataset_file_data):
+def test_gwlandscape_files_by_dataset(
+    setup_gwl_request,
+    query_dataset_files_return,
+    mock_dataset_file_data,
+    create_dataset
+):
     gwl, mr = setup_gwl_request
 
     mr.return_value = query_dataset_files_return(n_files=3)
 
-    file_list = gwl._get_files_by_dataset_id('arbitrary_dataset_id')
+    dataset = create_dataset(gwl)
+
+    file_list = gwl._get_files_by_dataset(dataset)
 
     for i, ref in enumerate(file_list):
         assert ref == FileReference(
             **mock_dataset_file_data(i+1),
-            job_id='arbitrary_dataset_id',
-            job_type=None,
+            parent=dataset
         )
 
 
-def test_gwlandscape_get_files_by_reference(setup_gwl_request, setup_mock_download_fns, create_dataset_files):
-    gwc, _ = setup_gwl_request
-    mock_download_files = setup_mock_download_fns[0]
-    mock_get_fn = setup_mock_download_fns[1]
+def test_gwlandscape_get_files_by_reference(
+    setup_gwl_request,
+    setup_mock_download_fns,
+    create_dataset,
+    create_dataset_files
+):
+    gwl, _ = setup_gwl_request
+    test_dataset = create_dataset(gwl)
 
-    test_files = create_dataset_files(n_files=3)
+    mock_download_files, mock_get_fn, _ = setup_mock_download_fns(test_dataset)
 
-    files = gwc.get_files_by_reference(test_files)
+    test_files = create_dataset_files(test_dataset, n_files=3)
+
+    files = gwl.get_files_by_reference(test_files)
 
     assert [f[0] for f in files] == test_files.get_paths()
 
     mock_download_files.assert_called_once_with(
         mock_get_fn,
-        test_files.get_tokens(),
-        test_files.get_paths(),
-        test_files.get_total_bytes()
+        test_files
     )
 
 
-def test_gwlandscape_save_files_by_reference(setup_gwl_request, setup_mock_download_fns, create_dataset_files):
-    gwc, _ = setup_gwl_request
-    mock_download_files = setup_mock_download_fns[0]
-    mock_save_fn = setup_mock_download_fns[2]
+def test_gwlandscape_save_files_by_reference(
+    setup_gwl_request,
+    setup_mock_download_fns,
+    create_dataset,
+    create_dataset_files
+):
+    gwl, _ = setup_gwl_request
+    test_dataset = create_dataset(gwl)
 
-    test_files = create_dataset_files(n_files=3)
+    mock_download_files, _, mock_save_fn = setup_mock_download_fns(test_dataset)
 
-    gwc.save_files_by_reference(test_files, 'test_dir')
+    mock_root_path = 'test_dir'
+
+    test_files = create_dataset_files(test_dataset, n_files=3)
+
+    gwl.save_files_by_reference(test_files, mock_root_path)
 
     mock_download_files.assert_called_once_with(
         mock_save_fn,
-        test_files.get_tokens(),
-        test_files.get_output_paths('test_dir', preserve_directory_structure=True),
-        test_files.get_paths(),
-        test_files.get_total_bytes()
+        test_files,
+        mock_root_path
     )
