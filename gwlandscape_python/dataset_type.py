@@ -1,23 +1,33 @@
-from dataclasses import dataclass, field
+from gwdc_python.objects.base import GWDCObjectBase
+from gwdc_python.files.constants import GWDCObjectType
 
-from gwdc_python.jobs.meta import JobMeta
-
-import gwlandscape_python
-from gwlandscape_python.model_type import Model
-from gwlandscape_python.publication_type import Publication
 from gwlandscape_python.utils import file_filters
 
 
-@dataclass
-class Dataset(metaclass=JobMeta):
-    client: gwlandscape_python.gwlandscape.GWLandscape = field(compare=False)
-    id: str
-    publication: Publication
-    model: Model
+class Dataset(GWDCObjectBase):
+    """
+    Dataset class is useful for interacting with the Datasets returned from a call to the GWCloud API.
+    It is primarily used to update the parameters and obtain files related to the dataset.
 
+    Parameters
+    ----------
+    client : ~gwlandscape_python.gwlandscape.GWLandscape
+        A reference to the GWLandscape object instance from which the Dataset was created
+    dataset_id : str
+        The id of the Dataset, required to obtain the files associated with it
+    publication : ~gwlandscape_python.publication_type.Publication
+        The publication with which the dataset is associated
+    model : ~gwlandscape_python.model_type.Model
+        The model with which the dataset is associated
+    """
     FILE_LIST_FILTERS = {
         'data': file_filters.data_filter
     }
+
+    def __init__(self, client, dataset_id, publication, model):
+        super().__init__(client, dataset_id, GWDCObjectType.UPLOADED)
+        self.publication = publication
+        self.model = model
 
     def __repr__(self):
         return f'Dataset({self.publication} - {self.model})'
@@ -83,13 +93,3 @@ class Dataset(metaclass=JobMeta):
         result = self.client.request(mutation, params)
 
         assert result['delete_compas_dataset_model']['result']
-
-    def get_full_file_list(self):
-        """Get information for all files associated with this dataset
-
-        Returns
-        -------
-        ~gwdc_python.files.file_reference.FileReferenceList
-            Contains FileReference instances for each of the files associated with this dataset
-        """
-        return self.client._get_files_by_dataset_id(self.id)

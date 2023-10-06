@@ -518,6 +518,8 @@ class GWLandscape:
             del dataset['node']['compas_publication']
             del dataset['node']['compas_model']
 
+            dataset['node']['dataset_id'] = dataset['node'].pop('id')
+
         return [
             gwlandscape_python.dataset_type.Dataset(client=self, **kw['node'])
             for kw in result['compas_dataset_models']['edges']
@@ -542,7 +544,7 @@ class GWLandscape:
         data = self.request(query=query)
         return data['generate_compas_dataset_model_upload_token']['token']
 
-    def _get_files_by_dataset_id(self, dataset_id):
+    def _get_files_by_dataset(self, dataset):
         query = """
             query ($id: ID!) {
                 compasDatasetModel (id: $id) {
@@ -556,7 +558,7 @@ class GWLandscape:
         """
 
         variables = {
-            "id": dataset_id
+            "id": dataset.id
         }
 
         data = self.request(query=query, variables=variables)
@@ -566,8 +568,7 @@ class GWLandscape:
             file_list.append(
                 FileReference(
                     **file_data,
-                    job_id=dataset_id,
-                    job_type=None
+                    parent=dataset
                 ),
             )
 
@@ -587,17 +588,13 @@ class GWLandscape:
         list
             List of tuples containing the file path and file contents as a byte string
         """
-        file_tokens = file_references.get_tokens()
-        file_paths = file_references.get_paths()
-        total_size = file_references.get_total_bytes()
+        files = _download_files(_get_file_map_fn, file_references)
 
-        files = _download_files(_get_file_map_fn, file_tokens, file_paths, total_size)
-
-        logger.info(f'All {len(file_tokens)} files downloaded!')
+        logger.info(f'All {len(file_references)} files downloaded!')
 
         return files
 
-    def save_files_by_reference(self, file_references, root_path, preserve_directory_structure=True):
+    def save_files_by_reference(self, file_references, root_path):
         """Save files when provided a :class:`~gwdc_python.files.file_reference.FileReferenceList` and a root path
 
         Parameters
@@ -610,11 +607,6 @@ class GWLandscape:
         preserve_directory_structure : bool, optional
             Remove any directory structure for the downloaded files, by default True
         """
-        file_tokens = file_references.get_tokens()
-        output_paths = file_references.get_output_paths(root_path, preserve_directory_structure)
-        file_paths = file_references.get_paths()
-        total_size = file_references.get_total_bytes()
+        _download_files(_save_file_map_fn, file_references, root_path)
 
-        _download_files(_save_file_map_fn, file_tokens, output_paths, file_paths, total_size)
-
-        logger.info(f'All {len(file_tokens)} files saved!')
+        logger.info(f'All {len(file_references)} files saved!')

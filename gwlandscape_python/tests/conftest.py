@@ -155,7 +155,7 @@ def create_dataset(mock_dataset_data):
     def _create_dataset(client, i=1):
         return Dataset(
             client=client,
-            id=f'mock_dataset_id{i}',
+            dataset_id=f'mock_dataset_id{i}',
             **mock_dataset_data(client, i)
         )
     return _create_dataset
@@ -205,12 +205,11 @@ def query_dataset_files_return(mock_dataset_file_data):
 
 @pytest.fixture
 def create_dataset_files(mock_dataset_file_data):
-    def _create_dataset_files(n_files):
+    def _create_dataset_files(dataset, n_files):
         return FileReferenceList([
             FileReference(
                 **mock_dataset_file_data(i),
-                job_id=f'id{i}',
-                job_type=None
+                parent=dataset
             ) for i in range(1, n_files+1)
         ])
     return _create_dataset_files
