@@ -2,7 +2,7 @@
 name = "gwlandscape-python"
 version = "1.0.0"
 description = "Wrapper of GWDC API, used for interacting with the GWLandscape endpoints"
-authors = ["Thomas Reichardt <treichardt@swin.edu.au>", "Lewis Lakerink <llakerink@swin.edu.au"]
+authors = ["Thomas Reichardt <treichardt@swin.edu.au>", "Lewis Lakerink <llakerink@swin.edu.au>", "Owen Cole <ocole@swin.edu.au>"]
 license = "MIT"
 readme = "README.rst"
 repository = "https://github.com/gravitationalwavedc/gwlandscape_python"
