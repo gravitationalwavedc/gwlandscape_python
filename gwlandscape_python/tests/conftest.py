@@ -8,7 +8,7 @@ from gwlandscape_python.publication_type import Publication
 
 @pytest.fixture
 def setup_gwl_request(mocker):
-    def mock_init(self, token, auth_endpoint, endpoint):
+    def mock_init(self, token, endpoint):
         pass
 
     mock_request = mocker.Mock()

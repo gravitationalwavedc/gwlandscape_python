@@ -7,7 +7,7 @@ from gwdc_python.logger import create_logger
 import gwlandscape_python
 from gwlandscape_python.utils import mutually_exclusive, validate_dataset
 from gwlandscape_python.utils.file_download import _download_files, _get_file_map_fn, _save_file_map_fn
-from gwlandscape_python.settings import GWLANDSCAPE_ENDPOINT, GWLANDSCAPE_AUTH_ENDPOINT
+from gwlandscape_python.settings import GWLANDSCAPE_ENDPOINT
 
 logger = create_logger(__name__)
 
@@ -29,10 +29,13 @@ class GWLandscape:
         Handles a lot of the underlying logic surrounding the queries
     """
 
-    def __init__(self, token="", auth_endpoint=GWLANDSCAPE_AUTH_ENDPOINT, endpoint=GWLANDSCAPE_ENDPOINT):
+    def __init__(
+        self,
+        token="",
+        endpoint=GWLANDSCAPE_ENDPOINT,
+    ):
         self.client = GWDC(
             token=token,
-            auth_endpoint=auth_endpoint,
             endpoint=endpoint,
         )
 
