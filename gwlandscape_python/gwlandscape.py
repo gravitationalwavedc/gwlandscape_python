@@ -191,7 +191,6 @@ class GWLandscape:
                 self.get_keywords(exact=keyword)[0].id if isinstance(keyword, str) else keyword.id
                 for keyword in keywords
             ]
-            inputs['keywords'] = [keyword.id for keyword in keywords]
 
         params = {
             'input': {

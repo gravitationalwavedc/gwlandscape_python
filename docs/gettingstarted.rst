@@ -4,7 +4,7 @@ Getting started with gwlandscape-python
 Installation
 ------------
 
-You will require Python 3.7+ to be able to use gwlandscape-python. The recommended way to install gwlandscape-python is with pip:
+You will require Python 3.10+ to be able to use gwlandscape-python. The recommended way to install gwlandscape-python is with pip:
 
 ::
 
@@ -30,5 +30,9 @@ Press the "Copy" button to copy the token to your clipboard.
 
 
 An API token operates as your credentials, replacing your username and password when using the API.
-You are also able to revoke your token at any point by clicking the "Revoke Token" button, at which point the token will cease to function.
+You are also able to revoke your token at any point by clicking the "Revoke" button, at which point the token will cease to function.
 You must not share it with anybody and should revoke and recreate it if somebody else obtains it.
+
+.. note::
+
+    If you are wanting to upload a new dataset for a publication, you will need to contact a maintainer of GWLandscape to grant you permission.
