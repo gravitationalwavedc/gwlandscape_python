@@ -4,6 +4,12 @@ Creating Publications
 
 Datasets in GWLandscape comprise publications and models. In this part of the tutorial, we will focus on how to create a new publication.
 
+.. note::
+
+    You must be granted permission before you are able to go through the process of uploading a dataset, including creating and updating publications and models.
+    Please contact a maintainer of GWLandscape.
+
+
 Browsing publications
 ---------------------
 
@@ -98,6 +104,11 @@ We are now able to show that our publication is present in the GWLandscape datab
     ...     print(publication)
 
     Publication("How gravitational waves prove the Flat Earth model")
+
+.. note::
+
+    By default, publications are not publicly visible.
+    If you wish to create a publication that is visible to everybody, remember to set :code:`public=True` when creating (or updating) your publication.
 
 Updating and deleting publications
 ----------------------------------

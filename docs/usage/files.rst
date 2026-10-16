@@ -45,7 +45,7 @@ which should give output for the download in the form of a progress bar:
     All 1 files saved!
 
 Obtaining dataset file data
------------------------
+---------------------------
 
 If we truly do just want to obtain the contents of some files, we can also download the files and store them in memory using the paired method :meth:`~.Dataset.get_data_files`.
 For example, if we wish to obtain the HDF5 data file so that we can explore the data, we can run:
